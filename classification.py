@@ -10,7 +10,7 @@ activation_functions = {
 
 X = np.array([[0,0], [0,1], [1,0], [1,1]])
 Y = np.array([ [0],   [1],   [1],   [0]])
-hidden_units = [4, 2] # array for more layers
+hidden_units = [2] # array for more layers
 
 
 
@@ -60,8 +60,8 @@ def epoch():
     O[-1] = np.delete(O[-1], [0], axis=1)
     # backward
     mY = O[-1]
-    E = Y - mY  # negative   TODO: separate as a configurable module and divided by m
-    e_top = E * sigmoid_deviation(mY)  # element by element multiply
+    E = Y-mY  # negative
+    e_top = E #* sigmoid_deviation(mY)  # element by element multiply
     Theta[-1] += O[-2].T.dot(e_top)  # hidden top layer * error top layer
     e_pre = e_top
     for i in range(1, len(Theta)):
