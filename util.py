@@ -66,7 +66,7 @@ def epoch():
     e_pre = e_top
     for i in range(1, len(Theta)):
         e = e_pre.dot(Theta[-i].T) * sigmoid_deviation(O[-1-i])  # next layer
-        e = np.delete(e, [0],axis=1)  # remove added bias from hidden layer
+        e = remove_bias(e)  # remove added bias from hidden layer
         Theta[-1-i] += learning_rate * O[-2-i].T.dot(e)
         e_pre = e
 
