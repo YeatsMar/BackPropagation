@@ -27,6 +27,9 @@ def random_weight(inputLayerSize, outputLayerSize):
     epsilon_init = np.sqrt(6) / np.sqrt(inputLayerSize + outputLayerSize)
     return np.random.uniform(low=-epsilon_init, high=epsilon_init, size=(inputLayerSize, outputLayerSize))
 
+def random_weight2(inputLayerSize, outputLayerSize):
+    inputLayerSize += 1
+    return np.random.uniform(low=-0.01, high=0.01, size=(inputLayerSize, outputLayerSize))
 
 def initialize_weight():
     global Theta
@@ -61,7 +64,7 @@ def epoch():
     # backward
     mY = O[-1]
     E = Y-mY  # negative
-    e_top = E #* sigmoid_deviation(mY)  # element by element multiply
+    e_top = E * sigmoid_deviation(mY)  # element by element multiply
     Theta[-1] += O[-2].T.dot(e_top)  # hidden top layer * error top layer
     e_pre = e_top
     for i in range(1, len(Theta)):
@@ -75,3 +78,4 @@ if __name__ == '__main__':
     for i in range(60000):
         epoch()
     print(mY)
+    print(random_weight(2,5))

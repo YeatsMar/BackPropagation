@@ -45,17 +45,7 @@ $$
 And $$\delta^{(L)}=\sum_{i=1}^{m}(O - d)*f^{\prime}(g)$$  
 
 #### Classification  
-In classification problems, the error or cost of the final output is cross entropy:$$Error=\sum_{i=1}^{m}d*lnO$$ Both $d$ and $O$ can only be 0 or 1.  
-If it is a logistic classfication, the partial derivative of error with respect to the outputs is also: $$\frac{\partial Error}{\partial O}=\sum_{i=1}^{m}(O - d)$$ The same as regression problems.  
-Proof:  
-$$Error=\sum_{i=1}^{m}d*lnO=\sum_{i=1}^{m}[d*lnO+(1-d)*ln(1-O)]$$
-$$=\sum_{i=1}^{m}\{d*[lnO-ln(1-O)]+ln(1-O)\}$$
-$$=\sum_{i=1}^{m}[d*ln\frac{O}{1-O}+ln(1-O)]$$
-Because
-$$O=sigmoid(\Theta^TX)=\frac{1}{1+e^{-\Theta^T X}}=\frac{e^{\Theta^T X}}{e^{\Theta^T X}+1}$$
-$$1-O=\frac{1}{e^{\Theta^T X}+1}$$
-$$ln\frac{O}{1-O}=ln(e^{\Theta^TX})=\Theta^TX$$
-$$ln(1-O)=-ln(\frac{1}{1-O})=-ln(1+e^{\Theta^TX})$$
-Thus
-$$Error=\sum_{i=1}^{m}[d*\Theta^TX-ln(1+e^{\Theta^TX})]$$
-$$\frac{\partial Error}{\partial \Theta}=\sum_{i=1}^{m}[d*X-\frac{e^{\Theta^TX}}{1+e^{\Theta^TX}}*X]=$$
+In classification problems, the error or cost of the final output is cross entropy:$$Error=-\sum_{i=1}^{m}[d*lnO+(1-d)*ln(1-O)]$$ Both $d$ and $O$ can only be 0 or 1.  
+Thus,
+$$\frac{\partial Error}{\partial O}=\frac{O-d}{O(1-O)}$$
+$$\color{red}{然后林神怎么破，我觉得和市面上写的公式就不一样了哎，我看到Ng写的BP网的错误率公式，在回归和分类问题上都是一样的公式Orz，但是如果按照我写的这个带入的话，就多了分母Orz}$$
