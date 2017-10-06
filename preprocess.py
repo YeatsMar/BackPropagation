@@ -1,10 +1,10 @@
 from PIL import Image
 import numpy as np
 import os
+import json
 
 def image2array(filepath):
     im = Image.open(filepath)
-    print(im.format, im.size, im.mode)
     pixels = im.load()
     for x in range(im.width):
         for y in range(im.height):
@@ -25,7 +25,7 @@ def get_data():
             y = np.zeros(14)
             y[i] = 1
             Y.append(y)
-    return (X, Y)
+    return (np.array(X), np.array(Y))
 
 if __name__ == '__main__':
     (X, Y) = get_data()

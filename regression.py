@@ -89,15 +89,24 @@ def epoch():
 if __name__ == '__main__':
     print('initialize weights:')
     print(Theta)
-    avg_cost = 1
-    while avg_cost >= max_error:
-        for i in range(100000):
-            epoch()
+    min_avg_cost = 10
+    i = 0
+    init_learning_rate = learning_rate
+    while learning_rate > init_learning_rate / 1024: #todo: early stopping
+        epoch()
         Cost = np.abs(Y-mY)
         avg_cost = np.mean(Cost)
-        print('error: %f' % avg_cost)
-        print('=====Result====')
-        for i in range(X.shape[0]):
-            print(Y[i], mY[i])
+        if avg_cost <= min_avg_cost:
+            min_avg_cost = avg_cost
+            i = 0
+        else:
+            i += 1
+        if i == 10:  # todo: learning decay
+            learning_rate /= 2
+            i = 0
+            print('error: %f' % avg_cost)
+            print('=====Result====')
+            for i in range(X.shape[0]):
+                print(Y[i], mY[i])
     print('final model:')
     print(Theta)
