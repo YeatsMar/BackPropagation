@@ -1,7 +1,6 @@
 from PIL import Image
 import numpy as np
 import os
-import json
 
 def image2array(filepath):
     im = Image.open(filepath)

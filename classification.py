@@ -117,11 +117,12 @@ def calculate_accuracy(Y, mY):
 if __name__ == '__main__':
     print('initialize weights:')
     print(Theta)
-    min_avg_cost = 1e10
-    i = 0
+    min_avg_cost = 1e20
+    i, j = 0
     init_learning_rate = learning_rate
-    while learning_rate > init_learning_rate / 1024:  # todo: early stopping
+    while learning_rate > init_learning_rate / 512:  # todo: early stopping
         epoch()
+        j += 1
         Cost = cross_entropy(Y, mY)
         avg_cost = np.sum(Cost)
         if avg_cost <= min_avg_cost:
@@ -129,9 +130,13 @@ if __name__ == '__main__':
             i = 0
         else:
             i += 1
-        if i == 10:  # todo: learning decay
+        if i == 30:  # todo: learning decay
             learning_rate /= 2
             i = 0
             print('accuracy: %f' % calculate_accuracy(Y, mY))
+            j =0
+        if j == 50000:  # keep track
+            print('accuracy: %f' % calculate_accuracy(Y, mY))
+            j = 0
     print('final model:')
     print(Theta)
