@@ -4,6 +4,10 @@ from preprocess import get_data
 minx, maxx = 0, 1
 miny, maxy = 0, 1
 learning_rate = 0.05
+hidden_units = [100, 80, 50] # array for more layers
+activation = ['tanH', 'tanH', 'tanH', 'softmax']
+regularization = [0,0.01,0.02,0.04,0.08,0.16,0.32,0.64,1.28,2.56,5.12,10.24]
+
 
 def softmax(X):
     X = np.exp(X)
@@ -11,9 +15,6 @@ def softmax(X):
     # sumX = np.repeat(sumX, X.shape[1], axis=1)
     return X / sumX
 
-regularization = [0,0.01,0.02,0.04,0.08,0.16,0.32,0.64,1.28,2.56,5.12,10.24]
-
-reg_lambda = regularization[0]
 
 activation_functions = {
     'sigmoid': (lambda x: 1/(1 + np.exp(-x)),
@@ -25,12 +26,6 @@ activation_functions = {
     'softmax': (softmax, lambda x: x * (1 - x), (0,  1), .45)
 }
 
-# X = np.array([[0,0], [0,1], [1,0], [1,1]])
-# Y = np.array([ [0],   [1],   [1],   [0]])
-hidden_units = [100, 80, 50] # array for more layers
-activation = ['tanH', 'tanH', 'tanH', 'softmax']
-
-(X, Y) = get_data()
 
 def configure_algo(a):
     global activate, activatePrime, mina, maxa
@@ -48,13 +43,13 @@ def random_weight2(inputLayerSize, outputLayerSize):
     return np.random.uniform(low=-0.01, high=0.01, size=(inputLayerSize, outputLayerSize))
 
 
-def initialize_weight():
-    global Theta
+def initialize_weight(X, Y):
     Theta = list()
     Theta.append(random_weight(X.shape[1], hidden_units[0]))
     for i in range(len(hidden_units)-1):
         Theta.append(random_weight(hidden_units[i], hidden_units[i+1]))
     Theta.append(random_weight(hidden_units[-1], Y.shape[1]))
+    return Theta
 
 
 def add_bias(X):
@@ -65,11 +60,22 @@ def remove_bias(X):
     return np.delete(X, obj=[0], axis=1)
 
 
-mX = add_bias(X)  # add bias before the first epoch
-initialize_weight()
+def cross_entropy(y, y2):
+    return - y * np.log(y2) - (1-y)* np.log(1-y2)
 
-def epoch():
-    global mX, Y, Theta, mY  # Theta is weight
+
+def calculate_accuracy(Y, mY):
+    correct_category = Y.argmax(axis=1)
+    predicted_category = mY.argmax(axis=1)
+    total = Y.shape[0]
+    count = 0
+    for i in range(total):
+        if correct_category[i] == predicted_category[i]:
+            count += 1
+    return count/total
+
+
+def epoch(mX, Y, Theta, reg_lambda, X):
     # forward
     O = list()
     O.append(mX)
@@ -98,30 +104,22 @@ def epoch():
         configure_algo(activation[-2-i])
         e = e.dot(Theta[-1-i].T) * activatePrime(O[-2-i])  # next layer
         e = remove_bias(e)  # remove added bias from hidden layer
+    return mY
 
 
-def cross_entropy(y, y2):
-    return - y * np.log(y2) - (1-y)* np.log(1-y2)
-
-def calculate_accuracy(Y, mY):
-    correct_category = Y.argmax(axis=1)
-    predicted_category = mY.argmax(axis=1)
-    total = Y.shape[0]
-    count = 0
-    for i in range(total):
-        if correct_category[i] == predicted_category[i]:
-            count += 1
-    return count/total
-
-
-if __name__ == '__main__':
+def train_model(reg_lambda, X, Y):
+    global learning_rate
+    mX = add_bias(X)  # add bias before the first epoch
+    Theta = initialize_weight(X, Y)
     print('initialize weights:')
     print(Theta)
     min_avg_cost = 1e20
-    i, j = 0
+    i = 0
+    j = 0
     init_learning_rate = learning_rate
-    while learning_rate > init_learning_rate / 512:  # todo: early stopping
-        epoch()
+    accuracy = 0
+    while learning_rate > init_learning_rate / 512 and accuracy != 1:
+        mY = epoch(mX, Y, Theta, reg_lambda, X)
         j += 1
         Cost = cross_entropy(Y, mY)
         avg_cost = np.sum(Cost)
@@ -130,13 +128,41 @@ if __name__ == '__main__':
             i = 0
         else:
             i += 1
-        if i == 30:  # todo: learning decay
+        if i == 30:
             learning_rate /= 2
             i = 0
-            print('accuracy: %f' % calculate_accuracy(Y, mY))
-            j =0
-        if j == 50000:  # keep track
-            print('accuracy: %f' % calculate_accuracy(Y, mY))
+            accuracy = calculate_accuracy(Y, mY)
+            print('accuracy: %f' % accuracy)
+            j = 0
+        if j == 10000:  # keep track
+            accuracy = calculate_accuracy(Y, mY)
+            print('accuracy: %f' % accuracy)
             j = 0
     print('final model:')
     print(Theta)
+    return Theta
+
+
+def predict(Theta, X, Y):
+    # forward
+    mX = add_bias(X)
+    O = list()
+    O.append(mX)
+    i = 0
+    for theta in Theta:
+        configure_algo(activation[i])
+        o = activate(O[i].dot(theta))
+        O.append(add_bias(o))
+        i += 1
+    O[-1] = remove_bias(O[-1])
+    # evaluate results
+    mY = O[-1]
+    accuracy = calculate_accuracy(Y, mY)
+    print('accuracy: %f' % accuracy)
+    return accuracy
+
+
+
+if __name__ == '__main__':
+    (X, Y) = get_data()
+    train_model(0, X, Y)

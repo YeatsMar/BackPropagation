@@ -12,6 +12,7 @@ def image2array(filepath):
     pixels.shape = im.width * im.height
     return pixels
 
+
 def get_data():
     X = list()
     Y = list()
@@ -25,6 +26,15 @@ def get_data():
             y[i] = 1
             Y.append(y)
     return (np.array(X), np.array(Y))
+
+
+def cross_validation(fold = 5):
+    (X, Y) = get_data()
+    total = X.shape[0]
+    num_test = round(total / fold)
+    num_train = total - num_test
+
+
 
 if __name__ == '__main__':
     (X, Y) = get_data()
