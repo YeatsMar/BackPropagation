@@ -1,5 +1,6 @@
 import numpy as np
 from preprocess import get_data
+import random
 
 minx, maxx = 0, 1
 miny, maxy = 0, 1
@@ -7,12 +8,12 @@ learning_rate = 0.05
 hidden_units = [100, 80, 50] # array for more layers
 activation = ['tanH', 'tanH', 'tanH', 'softmax']
 regularization = [0,0.01,0.02,0.04,0.08,0.16,0.32,0.64,1.28,2.56,5.12,10.24]
+max_epoch = 50000
 
 
 def softmax(X):
     X = np.exp(X)
     sumX = np.sum(X, axis=1, keepdims=True)
-    # sumX = np.repeat(sumX, X.shape[1], axis=1)
     return X / sumX
 
 
@@ -116,11 +117,13 @@ def train_model(reg_lambda, X, Y):
     min_avg_cost = 1e20
     i = 0
     j = 0
+    k = 0
     init_learning_rate = learning_rate
     accuracy = 0
-    while learning_rate > init_learning_rate / 512 and accuracy != 1:
+    while learning_rate > init_learning_rate / 512 and accuracy != 1 and k < max_epoch:
         mY = epoch(mX, Y, Theta, reg_lambda, X)
         j += 1
+        k += 1
         Cost = cross_entropy(Y, mY)
         avg_cost = np.sum(Cost)
         if avg_cost <= min_avg_cost:
@@ -144,7 +147,6 @@ def train_model(reg_lambda, X, Y):
 
 
 def predict(Theta, X, Y):
-    # forward
     mX = add_bias(X)
     O = list()
     O.append(mX)
@@ -162,7 +164,42 @@ def predict(Theta, X, Y):
     return accuracy
 
 
+def generate_batch(X, I, start, stop):
+    X_test = list()
+    X_train = list()
+    stop = len(I) if len(I) < stop else stop
+    for i in range(start, stop):
+        X_test.append(X[I[i]])
+    for i in range(start):
+        X_train.append(X[I[i]])
+    for i in range(stop, X.shape[0]):
+        X_train.append(X[I[i]])
+    return (np.array(X_test), np.array(X_train))
+
+
+def cross_validation(reg_lambda, fold=5):
+    (X, Y) = get_data()
+    total = X.shape[0]
+    I = np.arange(total)
+    random.shuffle(I)
+    random.shuffle(I)
+    random.shuffle(I)
+    batchSize = round(total / fold)
+    start = 0
+    accuracy = list()
+    for i in range(fold):
+        (X_test, X_train) = generate_batch(X, I, start, start + batchSize)
+        (Y_test, Y_train) = generate_batch(Y, I, start, start + batchSize)
+        Theta = train_model(reg_lambda, X_train, Y_train)
+        accuracy.append(predict(Theta, X_test, Y_test))
+        start += batchSize
+    avg_accuracy = np.mean(accuracy)
+    print('lambda:%f' % reg_lambda)
+    print(avg_accuracy, accuracy)
+    return avg_accuracy
+
 
 if __name__ == '__main__':
-    (X, Y) = get_data()
-    train_model(0, X, Y)
+    accuracies = list()
+    for reg_lambda in regularization:
+        accuracies.append(cross_validation(reg_lambda))

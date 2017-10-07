@@ -28,11 +28,7 @@ def get_data():
     return (np.array(X), np.array(Y))
 
 
-def cross_validation(fold = 5):
-    (X, Y) = get_data()
-    total = X.shape[0]
-    num_test = round(total / fold)
-    num_train = total - num_test
+
 
 
 
