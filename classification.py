@@ -1,11 +1,12 @@
 import numpy as np
 from preprocess import get_data
 import random
+import sys
 
 minx, maxx = 0, 1
 miny, maxy = 0, 1
 learning_rate = 0.05
-hidden_units = [100, 80, 50] # array for more layers
+hidden_units = [100, 100, 100] # array for more layers
 activation = ['tanH', 'tanH', 'tanH', 'softmax']
 regularization = [0,0.01,0.02,0.04,0.08,0.16,0.32,0.64,1.28,2.56,5.12,10.24]
 max_epoch = 50000
@@ -112,37 +113,41 @@ def train_model(reg_lambda, X, Y):
     global learning_rate
     mX = add_bias(X)  # add bias before the first epoch
     Theta = initialize_weight(X, Y)
-    print('initialize weights:')
-    print(Theta)
+    # print('initialize weights:')
+    # print(Theta)
     min_avg_cost = 1e20
     i = 0
     j = 0
     k = 0
     init_learning_rate = learning_rate
     accuracy = 0
-    while learning_rate > init_learning_rate / 512 and accuracy != 1 and k < max_epoch:
-        mY = epoch(mX, Y, Theta, reg_lambda, X)
-        j += 1
-        k += 1
-        Cost = cross_entropy(Y, mY)
-        avg_cost = np.sum(Cost)
-        if avg_cost <= min_avg_cost:
-            min_avg_cost = avg_cost
-            i = 0
-        else:
-            i += 1
-        if i == 30:
-            learning_rate /= 2
-            i = 0
-            accuracy = calculate_accuracy(Y, mY)
-            print('accuracy: %f' % accuracy)
-            j = 0
-        if j == 10000:  # keep track
-            accuracy = calculate_accuracy(Y, mY)
-            print('accuracy: %f' % accuracy)
-            j = 0
-    print('final model:')
-    print(Theta)
+    try:
+        while learning_rate > init_learning_rate / 512 and accuracy != 1 and k < max_epoch:
+            mY = epoch(mX, Y, Theta, reg_lambda, X)
+            j += 1
+            k += 1
+            Cost = cross_entropy(Y, mY)
+            avg_cost = np.sum(Cost)
+            if avg_cost <= min_avg_cost:
+                min_avg_cost = avg_cost
+                i = 0
+            else:
+                i += 1
+            if i == 30:
+                learning_rate /= 2
+                i = 0
+                accuracy = calculate_accuracy(Y, mY)
+                print('accuracy of training set: %f' % accuracy)
+                j = 0
+            if j == 10000:  # keep track
+                accuracy = calculate_accuracy(Y, mY)
+                print('accuracy of training set: %f' % accuracy)
+                j = 0
+    except KeyboardInterrupt as e:
+        print('accuracy of training set: %f' % accuracy)
+        raise e
+    # print('final model:')
+    # print(Theta)
     return Theta
 
 
@@ -160,7 +165,7 @@ def predict(Theta, X, Y):
     # evaluate results
     mY = O[-1]
     accuracy = calculate_accuracy(Y, mY)
-    print('accuracy: %f' % accuracy)
+    print('accuracy of test set: %f' % accuracy)
     return accuracy
 
 
@@ -194,8 +199,9 @@ def cross_validation(reg_lambda, fold=5):
         accuracy.append(predict(Theta, X_test, Y_test))
         start += batchSize
     avg_accuracy = np.mean(accuracy)
-    print('lambda:%f' % reg_lambda)
-    print(avg_accuracy, accuracy)
+    print('lambda:%f\navg_accuracy:%f' % (reg_lambda, avg_accuracy))
+    print('detailed accuracy: ')
+    print(accuracy)
     return avg_accuracy
 
 
@@ -203,3 +209,5 @@ if __name__ == '__main__':
     accuracies = list()
     for reg_lambda in regularization:
         accuracies.append(cross_validation(reg_lambda))
+    print(accuracies)
+    print('========100-100-100=========')
