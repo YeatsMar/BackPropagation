@@ -3,11 +3,11 @@ from preprocess import get_data
 import random
 import sys
 
-minx, maxx = 0, 1
-miny, maxy = 0, 1
-learning_rate = 0.0005
-hidden_units = [100, 100, 100] # array for more layers
-activation = ['ReLU', 'ReLU', 'ReLU', 'softmax']
+minx, maxx = 0, 1  # range of input
+miny, maxy = 0, 1  # range of output
+learning_rate = 0.45
+hidden_units = [100, 80, 50]  # each number represents the number of units of hidden layers
+activation = ['tanH', 'tanH', 'tanH', 'softmax']  # activation function of each layer
 regularization = [0,0.01,0.02,0.04,0.08,0.16,0.32,0.64,1.28,2.56,5.12,10.24]
 max_epoch = 50000
 momentum_strength = 0.5
@@ -19,6 +19,8 @@ def softmax(X):
     sumX = np.sum(X, axis=1, keepdims=True)
     return X / sumX
 
+def softmaxPrime(X, Y):
+    pass
 
 activation_functions = {
     'sigmoid': (lambda x: 1/(1 + np.exp(-x)),
@@ -101,8 +103,8 @@ def epoch(mX, Y, Theta, reg_lambda, pre_Theta):
     pre_Theta = Theta
     # ======momentum======
     mY = O[-1]
-    E = Y-mY  # negative
-    e = E
+    E = (Y-mY) / (mY*(1-mY))  # negative
+    e = E * activatePrime(mY)
     step = learning_rate / mX.shape[0]
     for i in range(len(Theta)):
         # ======= Regularization ========
@@ -137,10 +139,14 @@ def train_model(reg_lambda, X, Y):
     accuracy = 0
     try:
         while learning_rate > init_learning_rate / 512 and accuracy != 1 and k < max_epoch:
+            MY = np.array(np.zeros((1, Y.shape[1])))
             for (Xb, Yb) in next_batch(mX, Y):
-                (mY, Theta, pre_Theta) = epoch(Xb, Yb, Theta, reg_lambda, X, pre_Theta)
+                (mY, Theta, pre_Theta) = epoch(Xb, Yb, Theta, reg_lambda, pre_Theta)
+                MY = np.concatenate((MY, mY), axis=0)
+            MY = np.delete(MY, obj=[0], axis=0)
             j += 1
             k += 1
+            mY = np.array(MY)
             Cost = cross_entropy(Y, mY)
             avg_cost = np.sum(Cost)
             if avg_cost <= min_avg_cost:
@@ -222,8 +228,11 @@ def cross_validation(reg_lambda, fold=5):
 
 
 if __name__ == '__main__':
-    accuracies = list()
-    for reg_lambda in regularization:
-        accuracies.append(cross_validation(reg_lambda * 10))
-    print(accuracies)
-    print('========100-100-100-ReLu=========')
+    (X, Y) = get_data()  # modify the path inside
+    # Theta = train_model(0, X, Y)
+    # Theta.dump('classification.model')
+
+    Theta = np.load('classification.model')
+    print(Theta)
+    #
+    predict(Theta, X, Y)

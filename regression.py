@@ -91,12 +91,38 @@ def epoch(pre_Theta, Theta):  # w^(t-1), w^t
     return (pre_Theta, Theta)  # w^t, w^(t+1)
 
 
-def print_result():
+def calculate_error(Y, mY):
+    Cost = np.abs(Y - mY)
+    avg_cost = np.mean(Cost)
+    return avg_cost
+
+
+def predict_optimal():
+    with open('regression.model') as fopen:
+        Theta = eval(fopen.read())
+        Theta = np.array(Theta)
+        print(Theta)
+    mX = add_bias(X)
+    O = list()
+    O.append(mX)
+    i = 0
+    for theta in Theta:
+        o = activate(O[i].dot(theta))
+        O.append(add_bias(o))
+        i += 1
+    O[-1] = remove_bias(O[-1])
+    # evaluate results
+    mY = O[-1]
+    error = calculate_error(Y, mY)
+    print('error: %f' % error)
     print('=====Result====')
+    print('input X, sin(X), scaled Y, predicted Y')
     for i in range(X.shape[0]):
         print(X[i], f(X[i]), Y[i], mY[i])
 
-if __name__ == '__main__':
+
+def train_model():
+    global learning_rate, momentum_strength
     Theta = initialize_weight()
     pre_Theta = Theta
     print('initialize weights:')
@@ -104,10 +130,9 @@ if __name__ == '__main__':
     min_avg_cost = 10
     i = 0
     init_learning_rate = learning_rate
-    while learning_rate > init_learning_rate / 1024: # early stopping
+    while learning_rate > init_learning_rate / 1024:  # early stopping
         (pre_Theta, Theta) = epoch(pre_Theta, Theta)
-        Cost = np.abs(Y-mY)
-        avg_cost = np.mean(Cost)
+        avg_cost = calculate_error(Y, mY)
         if avg_cost <= min_avg_cost:
             min_avg_cost = avg_cost
             i = 0
@@ -123,3 +148,7 @@ if __name__ == '__main__':
                 print(Y[index], mY[index])
     print('final model:')
     print(Theta)
+
+
+if __name__ == '__main__':
+    predict_optimal()

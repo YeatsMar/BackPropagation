@@ -168,9 +168,9 @@ while 1:
 		break
 ~~~
 
-#### Weight decay
+#### Learning rate decay
 
-It is obvious that a small learning rate results in slow convergance, while a large one may cause vibration. In order to achieve the minimum cost status in a faster way, a common practice is to initizalize a learning rate at a relatively large value, like 0.5. And combined with early stopping, when it is time to stop, we cut down the learning rate instead. That is callled *Weight decay*.  
+It is obvious that a small learning rate results in slow convergance, while a large one may cause vibration. In order to achieve the minimum cost status in a faster way, a common practice is to initizalize a learning rate at a relatively large value, like 0.5. And combined with early stopping, when it is time to stop, we cut down the learning rate instead. That is callled *Learning rate decay*.  
 Finally, when the current learning rate is smaller than 1/1024 initial one, the training is stopped.
 
 ~~~python
@@ -188,11 +188,19 @@ while 1:
 ~~~
 
 #### Regularization (Cross Validation)  
-For the regression of `sin` function problem, regularization is unnecessary because there is no separate test set. But for classification problem, the overfit is obvious and may hurt the accuracy of test set.  
+For the regression of `sin` function problem, regularization is unnecessary because there is no separate test set. But for classification problem, the overfit is obvious and may hurt the accuracy of test set.   
+Overfit means being too complex for the model to afford, resulting in highly-accurate in matching traing set for it tries to fit each sample data. And usually, it can only achieve limited accuracy on test set of which the data is never seen before.  
+
+![regularization2](forREADME/regularization2.png)
+
 When training the model of training set, 100% accuracy can be easily achieved. However, the accuracy of that model on test set is only around 85%. The most common way is *regularization*, which means add cost of weight itself in loss function.
-$$OriginalCost+\frac{1}{2}\sum\Theta^2$$ 
+$$OriginalCost+\frac{\lambda}{2m}\sum\Theta^2$$ 
 Thus when $w$ is not the weight of bias unit (the weight of bias unit is the actual bias, thus out of the boundary of bias), 
-$$\Delta w -w, \Delta w=\frac{\partial Error}{\partial w}$$
+$$\Delta w - \frac{\lambda}{m}w$$
+$\Delta w=\frac{\partial Error}{\partial w}$ is the original error derivation, $m$ is the number of samples, $\lambda$ determines the degree of regularization. The larger $\lambda$ is, the model is tend to underfit, otherwise, overfit.   
+The reason why larger weights results in overfitting should be deduced based on Bayes probabilities, which is currently beyond my understaning Orz. Let's discuss it later after DDL :)
+
+![regularization](forREADME/regularization.png)
 
 ~~~python
 for i in range(len(Theta)):
@@ -205,6 +213,34 @@ for i in range(len(Theta)):
     Theta[-1 - i] += step * O[-2 - i].T.dot(e)        
 ~~~   
 
+Without experiments, the proper value of $\lambda$ is unknown. Usually, in order to attain good hyper-parameters, a validation set is needed. And since in our case, the whole dataset is small, I choose 5-fold cross validation. 
+
+~~~python
+def cross_validation(reg_lambda, fold=5):
+    (X, Y) = get_data()
+    total = X.shape[0]
+    I = np.arange(total)
+    random.shuffle(I)  # The ramdom shuffle of original dataset is quite important for a unbiased result. 
+    random.shuffle(I)
+    random.shuffle(I)
+    batchSize = round(total / fold)
+    start = 0
+    accuracy = list()
+    for i in range(fold):
+    	 # use I for index to match Y with X
+        (X_test, X_train) = generate_batch(X, I, start, start + batchSize)
+        (Y_test, Y_train) = generate_batch(Y, I, start, start + batchSize)
+        Theta = train_model(reg_lambda, X_train, Y_train)
+        accuracy.append(predict(Theta, X_test, Y_test))
+        start += batchSize
+    avg_accuracy = np.mean(accuracy)
+    print('lambda:%f\navg_accuracy:%f' % (reg_lambda, avg_accuracy))
+    print('detailed accuracy: ')
+    print(accuracy)
+    return avg_accuracy
+~~~
+
+
 
 
 #### Stochastic gradient descent
@@ -213,7 +249,109 @@ In our classification problem, the number of images is small and the size of eac
 
 #### Momentum
 
-In short, it originates from *inertance* in Physicsm. Thus it aims to 
+In short, it originates from *inertance* in Physicsm. Thus it aims to make the movement (change) of weights tend to its original path, which is helpful to jump out of a local optimal status.  
+
+$$\Theta^{t+1} = \alpha * \Theta^{t}- \Delta \Theta^{t} + \gamma (\Theta^{t} - \Theta^{t-1})$$
+$\alpha$ is step, i.e. learning rate / number of samples, $\gamma$ is momentum strength, which is usually set as 0.5 initially and modified to 0.9 later.
 
 ~~~python
+# backward process starts
+# ======momentum======
+momentum = (np.array(Theta) - np.array(pre_Theta)) * momentum_strength
+pre_Theta = Theta
+
+# calculate error propagation like before
+......
+# finally
+Theta += momentum
+return
+~~~
+
+Usually, Momentum is combined with SGD.
+
+## Evaluation  
+### Regression of sin(x)
+Learning rate decay + early stopping is quite enough for this case. Due to the time limits, the best model I trained achieve the average error of **0.004655**. The model is stored in `regression.model` and you can simply run `predict_optimal()` in `regression.py`.
+
+### Classification of Chinese characters
+There is only slight difference with the optimal methods, such as SGD + momentum, regularization. 
+
+### Regularization
+
+~~~python
+hidden_units = [100, 80, 50] # array for more layers
+activation = ['tanH', 'tanH', 'tanH', 'softmax']
+learning_rate = 0.45  # initially
+~~~
+
+$\lambda$     | Accuracy of test est
+------------- | -------------
+0  | 0.85602331252970565
+0.01   | 0.8498928652127502
+0.02  | 0.85379529853595459
+0.04    | 0.85100356077074724
+0.08    | 0.85351363144074865
+0.16    | 0.84542748728017902
+0.32    | 0.85379101314446459
+0.64    | 0.85602526043492833
+1.28    | 0.85435746398323231
+2.56    | 0.85323547057494376
+5.12    | 0.84570525856493928
+10.24    | 0.85574320375867807
+50    | 0.845427097699 
+100    | 0.836776061024
+150    | 0.765061592763
+200    | 0.531511652369
+
+
+We can easily see for common $\lambda$ values, there is nearly no difference, i.e. 100% accuracy can always be achieved on training set while the accuracy on test set remain the same. Only when the $\lambda$ becomes incredibly large, like larger than 50, both accuracy of training set and test set decrease.  
+
+### SGD + Momentum
+No remarkable improvement as well :(  
+
+Parameter     | Value
+------------- | -------------
+hidden units | [100, 80, 50]
+activation  | ['tanH', 'tanH', 'tanH', 'softmax']
+initial learning rate | 0.45
+lambda | 0
+avg accuracy traing CV | 1.0
+avg accuracy test CV | 0.854080
+
+### Test my model
+Please use `preprocess.py` and main function in `classification.py`
+
+
+## Configuration
+The artificial networks of classification and regression are different, thus they are in separate files. But the parameters of the network are both listed on the top. 
+
+~~~python
+# classification.py
+minx, maxx = 0, 1  # range of input
+miny, maxy = 0, 1  # range of output
+learning_rate = 0.45
+hidden_units = [100, 80, 50]  # each number represents the number of units of hidden layers
+activation = ['tanH', 'tanH', 'tanH', 'softmax']  # activation function of each layer
+regularization = [0,0.01,0.02,0.04,0.08,0.16,0.32,0.64,1.28,2.56,5.12,10.24]
+max_epoch = 50000
+momentum_strength = 0.5
+batchSize = 256
+~~~
+
+~~~python
+# regression.py
+ax_error = 1e-2
+minx, maxx = -3.14, 3.14
+miny, maxy = -1, 1
+numx = int(maxx*5+1)
+hidden_units = [5,2]
+activation = 'sigmoid'
+max_epoch = 5000000
+momentum_strength = 0.5
+
+
+def f(x): return np.sin(x)
+
+
+X = np.linspace(minx, maxx, num=numx)
 ~~~
