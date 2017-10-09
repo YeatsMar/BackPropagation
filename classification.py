@@ -5,11 +5,13 @@ import sys
 
 minx, maxx = 0, 1
 miny, maxy = 0, 1
-learning_rate = 0.05
-hidden_units = [100, 80, 50] # array for more layers
-activation = ['ReLu', 'ReLu', 'ReLu', 'softmax']
+learning_rate = 0.0005
+hidden_units = [100, 100, 100] # array for more layers
+activation = ['ReLU', 'ReLU', 'ReLU', 'softmax']
 regularization = [0,0.01,0.02,0.04,0.08,0.16,0.32,0.64,1.28,2.56,5.12,10.24]
 max_epoch = 50000
+momentum_strength = 0.5
+batchSize = 256
 
 
 def softmax(X):
@@ -62,6 +64,11 @@ def remove_bias(X):
     return np.delete(X, obj=[0], axis=1)
 
 
+def next_batch(X, Y):
+    for i in np.arange(0, X.shape[0], batchSize):
+        yield (X[i:i + batchSize], Y[i:i + batchSize])
+
+
 def cross_entropy(y, y2):
     return - y * np.log(y2) - (1-y)* np.log(1-y2)
 
@@ -77,7 +84,7 @@ def calculate_accuracy(Y, mY):
     return count/total
 
 
-def epoch(mX, Y, Theta, reg_lambda, X):
+def epoch(mX, Y, Theta, reg_lambda, pre_Theta):
     # forward
     O = list()
     O.append(mX)
@@ -89,30 +96,37 @@ def epoch(mX, Y, Theta, reg_lambda, X):
         i += 1
     O[-1] = remove_bias(O[-1])
     # backward
+    # ======momentum======
+    momentum = (np.array(Theta) - np.array(pre_Theta)) * momentum_strength
+    pre_Theta = Theta
+    # ======momentum======
     mY = O[-1]
     E = Y-mY  # negative
-    e = E #* activatePrime(mY)  # element by element multiply
+    e = E
+    step = learning_rate / mX.shape[0]
     for i in range(len(Theta)):
         # ======= Regularization ========
-        forReg = - Theta[-1 - i] * learning_rate / X.shape[0] * reg_lambda
+        forReg = - Theta[-1 - i] * step * reg_lambda
         forReg = np.delete(forReg, obj=[0], axis=0)  # bias should not be regularized
         forReg = np.insert(forReg, obj=[0], values=[0], axis=0)
         Theta[-1 - i] += forReg
         # ======= Regularization ========
-        Theta[-1 - i] += learning_rate / X.shape[0] * O[-2 - i].T.dot(e) # hidden top layer * error top layer
+        Theta[-1 - i] += step * O[-2 - i].T.dot(e) # hidden top layer * error top layer
         # for next layer
         if i == len(Theta) - 1:
             break
         configure_algo(activation[-2-i])
         e = e.dot(Theta[-1-i].T) * activatePrime(O[-2-i])  # next layer
         e = remove_bias(e)  # remove added bias from hidden layer
-    return mY
+    # ======momentum======
+    Theta += momentum
+    return (mY, Theta, pre_Theta)
 
 
 def train_model(reg_lambda, X, Y):
-    global learning_rate
+    global learning_rate, momentum_strength
     mX = add_bias(X)  # add bias before the first epoch
-    Theta = initialize_weight(X, Y)
+    pre_Theta = Theta = initialize_weight(X, Y)
     # print('initialize weights:')
     # print(Theta)
     min_avg_cost = 1e20
@@ -123,7 +137,8 @@ def train_model(reg_lambda, X, Y):
     accuracy = 0
     try:
         while learning_rate > init_learning_rate / 512 and accuracy != 1 and k < max_epoch:
-            mY = epoch(mX, Y, Theta, reg_lambda, X)
+            for (Xb, Yb) in next_batch(mX, Y):
+                (mY, Theta, pre_Theta) = epoch(Xb, Yb, Theta, reg_lambda, X, pre_Theta)
             j += 1
             k += 1
             Cost = cross_entropy(Y, mY)
@@ -135,6 +150,7 @@ def train_model(reg_lambda, X, Y):
                 i += 1
             if i == 30:
                 learning_rate /= 2
+                momentum_strength = 0.9
                 i = 0
                 accuracy = calculate_accuracy(Y, mY)
                 print('accuracy of training set: %f' % accuracy)
@@ -143,7 +159,7 @@ def train_model(reg_lambda, X, Y):
                 accuracy = calculate_accuracy(Y, mY)
                 print('accuracy of training set: %f' % accuracy)
                 j = 0
-    except KeyboardInterrupt as e:
+    except Exception or KeyboardInterrupt as e:
         print('accuracy of training set: %f' % accuracy)
         raise e
     # print('final model:')

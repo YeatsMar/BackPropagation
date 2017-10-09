@@ -1,5 +1,5 @@
 # BackPropagration Network
-## Principle
+## <a name="principle">Principle</a>
 ### Forward
 ![basic_BP](forREADME/basic_BP.png)  
 Each unit (or say, neuron) of the input layer contributes  to its next neuron, i.e. each unit of next layer (output layer), to some extent. The extents (weights) of the contributions are independent. Thus the connection between input layer and output layer is fully connected and single directed.  
@@ -48,4 +48,172 @@ And $$\delta^{(L)}=\sum_{i=1}^{m}(O - d)*f^{\prime}(g)$$
 In classification problems, the error or cost of the final output is cross entropy:$$Error=-\sum_{i=1}^{m}[d*lnO+(1-d)*ln(1-O)]$$ Both $d$ and $O$ can only be 0 or 1.  
 Thus,
 $$\frac{\partial Error}{\partial O}=\frac{O-d}{O(1-O)}$$
-$$\color{red}{然后林神怎么破，我觉得和市面上写的公式就不一样了哎，我看到Ng写的BP网的错误率公式，在回归和分类问题上都是一样的公式Orz，但是如果按照我写的这个带入的话，就多了分母Orz}$$
+Because the activation function of classification problem can only be *sigmoid* or *softmax*, of which the deviation is $f^{\prime}(g)=f(g)*[1-f(g)]$.  
+Thus, $$\delta^{(L)}=\sum_{i=1}^{m}(O - d)$$   
+
+
+## Implementation
+Based on *Python 3.6*, making full use of *numpy* for efficient matrix operation.  
+
+### Preprocess of training data
+
+$X$ represents the input of training data and $Y$ the actual value of training data. Both $X$ and $Y$ are matrix, of which each row represent a sample and is composed of features.
+
+#### Bias
+As mentioned in the [Principle](#principle) section, I treat bias as a part of the input, thus set its value as 1. Then the bias unit will also dedicated to the output with a certain weight, which will be modified according to the cost.  
+In my practice, I thus insert a new feature into all input layers.  
+
+~~~python
+def add_bias(X):
+    return np.insert(X, obj=[0], values=[1], axis=1)
+~~~
+
+#### Scale of output and input
+Since there is still an activation function in the last layer which produce the predicted output and the output of activation function is within a certain range, $Y$ is supposed to be scaled in the same range as predicted output, say $Y'$.  
+
+$$
+Y = Y'_{min}+(Y-Y_{min})* \frac{Y'_{max}-Y'_{min}}{Y_{max}-Y_{min}}
+$$
+
+Cautious: $Y'_{max}$ is the value $Y'$ can be instead of actually being. E.g. in sigmoid function, $Y'_{max}=1, Y'_{min}=0$ .
+
+~~~python
+def normalize_y(Y):
+    return (Y - miny)*(maxa - mina)/(maxy - miny) + mina
+~~~
+
+Since in our case, $X$ is within a small range [-3.14, 3.14], it is not necessary to scale $X$.
+
+### Initialization of weight
+The initial weights matters a lot and there are two common ways of random initialization.  
+1. **Gaussian**: Weights are randomly drawn from Gaussian distributions with fixed mean (e.g. 0) and fixed standard deviation (e.g. 0.01).  
+2. **Xavier**: It initializes the weights in network by drawing them from a distribution with zero mean and a specific variance ($n$ is the number of units on a layer):$$var(\Theta)=\frac{2}{n_{in}+n_{out}}$$  
+
+In my implementation, I choose Xavier initialzation. Thus, the codes goes like this:  
+
+~~~python
+def random_weight(inputLayerSize, outputLayerSize):
+    inputLayerSize += 1  # add bias
+    epsilon_init = np.sqrt(6) / np.sqrt(inputLayerSize + outputLayerSize)
+    return np.random.uniform(low=-epsilon_init, high=epsilon_init, size=(inputLayerSize, outputLayerSize))
+~~~  
+It is an effective strategy to randomly select values for $\Theta^{(l)}$ uniformly in the range $[-\epsilon_{init}, \epsilon_{init}]$, $ \epsilon_{init}=\frac{\sqrt6}{\sqrt{n_{in}+n_{out}}}$. However, since the random seed depends on the unit number of input layer and output layer, the weights of each layer should be initialized separately. Thus,  
+ 
+~~~python
+def initialize_weight(X, Y):
+    Theta = list()
+    Theta.append(random_weight(X.shape[1], hidden_units[0]))
+    for i in range(len(hidden_units)-1):
+        Theta.append(random_weight(hidden_units[i], hidden_units[i+1]))
+    Theta.append(random_weight(hidden_units[-1], Y.shape[1]))
+    return Theta
+~~~  
+
+
+### Implementation of an epoch
+An epoch consists of a forward process and a backward process.
+
+~~~python
+# Forward
+O = list()  # O is a 3D array to record the outputs of each layer. The first dimension refers to the outputs of a layer, the second refers to a sample data and the first refers to features of a sample.
+O.append(mX)  # the first layer is just the input, mX = add_bias(X)
+i = 0
+for theta in Theta:  # theta is Matrix[n_in, n_out]
+    o = activate(O[i].dot(theta))  # output of next layer
+    O.append(add_bias(o))  # secretly add bias
+    i += 1
+O[-1]=remove_bias(O[-1])  # last layer is for output, thus no need for bias
+~~~
+
+$O$ is recorded for the backward process.
+
+~~~python
+# Backward
+step = learning_rate/X.shape[0]  # X.shape[0] is the number of samples
+mY = O[-1]  # predicted output is on the last layer
+E = Y - mY  # negative
+e_top = E * activatePrime(mY)
+Theta[-1] += step * O[-2].T.dot(e_top)  # hidden top layer * error top layer
+e_pre = e_top
+for i in range(1, len(Theta)):
+    e = e_pre.dot(Theta[-i].T) * activatePrime(O[-1-i])  # next layer
+    e = remove_bias(e)  # remove error of added bias units
+    Theta[-1-i] += step * O[-2-i].T.dot(e)
+    e_pre = e
+~~~
+
+
+
+
+### Optimization
+
+There are several ways to optimize the network to make it achieve better accuracy faster.
+
+####Early stopping  
+
+It is hard to tell how many epochs should the network walk through to achieve the optimal status. Brutally assign a large value is not a wise choice, for different initial weights requires different rounds of epochs. If very fortunately, the initial weights are just somewhere near the minimum cost status, a small number of epochs is enough; otherwise, not large enough number of epochs will only result in half-done status.   
+One way to decide when to stop the training of the model is called *Early-stopping*. When cost of the model keeps not going down in at least N epochs, the training should be stopped. And usually the N is 10,30 or 50.
+
+~~~python
+# An effective way for early stopping
+while 1:
+	epoch()
+	# calculate cost
+	if avg_cost <= min_avg_cost:
+	    min_avg_cost = avg_cost
+	    i = 0
+	else:
+	    i += 1
+	if i == 30:  # the value can be changed
+		break
+~~~
+
+#### Weight decay
+
+It is obvious that a small learning rate results in slow convergance, while a large one may cause vibration. In order to achieve the minimum cost status in a faster way, a common practice is to initizalize a learning rate at a relatively large value, like 0.5. And combined with early stopping, when it is time to stop, we cut down the learning rate instead. That is callled *Weight decay*.  
+Finally, when the current learning rate is smaller than 1/1024 initial one, the training is stopped.
+
+~~~python
+while 1:
+	epoch()
+	# calculate cost
+	if avg_cost <= min_avg_cost:
+	    min_avg_cost = avg_cost
+	    i = 0
+	else:
+	    i += 1
+	if i == 30:  # the value can be changed
+		learning_rate /= 2
+	    i = 0
+~~~
+
+#### Regularization (Cross Validation)  
+For the regression of `sin` function problem, regularization is unnecessary because there is no separate test set. But for classification problem, the overfit is obvious and may hurt the accuracy of test set.  
+When training the model of training set, 100% accuracy can be easily achieved. However, the accuracy of that model on test set is only around 85%. The most common way is *regularization*, which means add cost of weight itself in loss function.
+$$OriginalCost+\frac{1}{2}\sum\Theta^2$$ 
+Thus when $w$ is not the weight of bias unit (the weight of bias unit is the actual bias, thus out of the boundary of bias), 
+$$\Delta w -w, \Delta w=\frac{\partial Error}{\partial w}$$
+
+~~~python
+for i in range(len(Theta)):
+    # ======= Regularization ========
+    forReg = - Theta[-1 - i] * step * reg_lambda
+    forReg = np.delete(forReg, obj=[0], axis=0)  # bias should not be regularized
+    forReg = np.insert(forReg, obj=[0], values=[0], axis=0)
+    Theta[-1 - i] += forReg
+    # ======= Regularization ======== before the 
+    Theta[-1 - i] += step * O[-2 - i].T.dot(e)        
+~~~   
+
+
+
+#### Stochastic gradient descent
+In short, SGD is a batched version of gradient descent. The training set is randomly and evenly cut into N batches and only a batch is used in an epoch. First of all, this will definitely result in fast convergance, for the volumn of traing set decrease remarkably. Secondly, because of the randomness of thethis also helps to solve the problem of overfitting.   
+In our classification problem, the number of images is small and the size of each image is only 28*28, so the efficiency is not a problem.
+
+#### Momentum
+
+In short, it originates from *inertance* in Physicsm. Thus it aims to 
+
+~~~python
+~~~
