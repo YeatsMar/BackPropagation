@@ -2,3 +2,5 @@
 .idea/
 TRAIN/
 README.html
+__pycache__/
+tmp/

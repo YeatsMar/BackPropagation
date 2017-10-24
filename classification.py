@@ -64,7 +64,7 @@ def remove_bias(X):
     return np.delete(X, obj=[0], axis=1)
 
 
-def next_batch(X, Y):
+def next_batch(X, Y, batchSize=256):
     for i in np.arange(0, X.shape[0], batchSize):
         yield (X[i:i + batchSize], Y[i:i + batchSize])
 

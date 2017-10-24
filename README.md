@@ -1,3 +1,34 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [BackPropagration Network](#backpropagration-network)
+  - [<a name="principle">Principle</a>](#a-nameprincipleprinciplea)
+    - [Forward](#forward)
+    - [Backward](#backward)
+      - [Regression](#regression)
+      - [Classification](#classification)
+  - [Implementation](#implementation)
+    - [Preprocess of training data](#preprocess-of-training-data)
+      - [Bias](#bias)
+      - [Scale of output and input](#scale-of-output-and-input)
+    - [Initialization of weight](#initialization-of-weight)
+    - [Implementation of an epoch](#implementation-of-an-epoch)
+    - [Optimization](#optimization)
+      - [Learning rate decay](#learning-rate-decay)
+      - [Regularization (Cross Validation)](#regularization-cross-validation)
+      - [Stochastic gradient descent](#stochastic-gradient-descent)
+      - [Momentum](#momentum)
+  - [Evaluation](#evaluation)
+    - [Regression of sin(x)](#regression-of-sinx)
+    - [Classification of Chinese characters](#classification-of-chinese-characters)
+    - [Regularization](#regularization)
+    - [SGD + Momentum](#sgd--momentum)
+    - [Test my model](#test-my-model)
+  - [Configuration](#configuration)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # BackPropagration Network
 ## <a name="principle">Principle</a>
 ### Forward
