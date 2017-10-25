@@ -184,6 +184,9 @@ test accuracy 0.953911
 
 #### Gaussian Blur
 
+OpenCV
+
+
 ### Batch Normalization
 
 input of each layer: mean, std   then input = (input-mean)/std

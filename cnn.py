@@ -141,14 +141,12 @@ def main(_):
             for i in range(epochs):
                 for (Xb, Yb) in next_batch(cnnData.X_train, cnnData.Y_train, batchSize):
                     train_step.run(feed_dict={x: Xb, y_: Yb, keep_prob: 0.5})
-
+                train_accuracy = accuracy.eval(feed_dict={
+                    x: cnnData.X_train, y_: cnnData.Y_train, keep_prob: 1.0})
+                if train_accuracy == 1:
+                    break
                 if i % 25 == 0:  # log
-                    train_accuracy = accuracy.eval(feed_dict={
-                        x: cnnData.X_train, y_: cnnData.Y_train, keep_prob: 1.0})
                     print('step %d, training accuracy %g' % (i, train_accuracy))
-                    if train_accuracy == 1:
-                        break
-
             print('test accuracy %g' % accuracy.eval(feed_dict={
                 x: cnnData.X_test, y_: cnnData.Y_test, keep_prob: 1.0}))
 
