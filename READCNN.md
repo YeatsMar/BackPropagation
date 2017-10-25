@@ -147,33 +147,72 @@ step 50, training accuracy 0.999651
 step 75, training accuracy 1
 test accuracy 0.960894
 
-Add a convolutional layer
+$\color{red}{增加第三层卷积层}$
 
+~~~
 step 0, training accuracy 0.123823
 step 25, training accuracy 0.987443
 step 50, training accuracy 1
 test accuracy 0.934449
-Saving graph to: /tmp/tmpwx2secnv
+
 step 0, training accuracy 0.0927799
 step 25, training accuracy 0.980816
 step 50, training accuracy 1
 test accuracy 0.958159
-Saving graph to: /tmp/tmpjo6444w_
+
 step 0, training accuracy 0.103593
 step 25, training accuracy 0.986746
 step 50, training accuracy 1
 test accuracy 0.956764
-Saving graph to: /tmp/tmporzfnvj5
+
 step 0, training accuracy 0.168818
 step 25, training accuracy 0.986397
 step 50, training accuracy 1
 test accuracy 0.945607
-Saving graph to: /tmp/tmpii4jf9fo
+
 step 0, training accuracy 0.150279
 step 25, training accuracy 0.988842
 step 50, training accuracy 1
 test accuracy 0.953911
- 
+~~~
+
+$\color{red}{卷积核从5*5改为3*3}$
+
+~~~
+step 0, training accuracy 0.122776
+step 25, training accuracy 0.981514
+step 50, training accuracy 0.997558
+step 75, training accuracy 1
+test accuracy 0.97629
+
+step 0, training accuracy 0.193582
+step 25, training accuracy 0.976979
+step 50, training accuracy 0.996861
+step 75, training accuracy 0.999302
+step 100, training accuracy 1
+test accuracy 0.990237
+
+step 0, training accuracy 0.138821
+step 25, training accuracy 0.985002
+step 50, training accuracy 0.998954
+step 75, training accuracy 1
+test accuracy 0.967922
+
+step 0, training accuracy 0.208929
+step 25, training accuracy 0.976979
+step 50, training accuracy 0.996861
+step 75, training accuracy 0.999302
+step 100, training accuracy 1
+test accuracy 0.987448
+
+step 0, training accuracy 0.125523
+step 25, training accuracy 0.97106
+step 50, training accuracy 0.996513
+step 75, training accuracy 1
+test accuracy 0.98324
+~~~
+
+
 ## Optimization
 
 ### Data Augmentation
