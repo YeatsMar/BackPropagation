@@ -6,16 +6,15 @@ from classification import next_batch
 from CnnData import CnnData
 
 import tensorflow as tf
-import numpy as np
 
 FLAGS = None
 num_class = 14
 image_width = 28
 image_height = 28
 image_depth = 1
-epochs = 20000
+epochs = 1000
 cv_fold = 5
-batchSize = 256
+batchSize = 32
 
 cnnData = CnnData()
 
@@ -90,25 +89,6 @@ def deepnn(x):
     return y_conv, keep_prob, mode
 
 
-def batch_norm_layer(x, train_phase, scope_bn):
-    with tf.variable_scope(scope_bn):
-        beta = tf.Variable(tf.constant(0.0, shape=[x.shape[-1]]), name='beta', trainable=True)
-        gamma = tf.Variable(tf.constant(1.0, shape=[x.shape[-1]]), name='gamma', trainable=True)
-        axises = np.arange(len(x.shape) - 1)
-        batch_mean, batch_var = tf.nn.moments(x, axises, name='moments')
-        ema = tf.train.ExponentialMovingAverage(decay=0.5)
-
-        def mean_var_with_update():
-            ema_apply_op = ema.apply([batch_mean, batch_var])
-            with tf.control_dependencies([ema_apply_op]):
-                return tf.identity(batch_mean), tf.identity(batch_var)
-
-        mean, var = tf.cond(train_phase, mean_var_with_update,
-                            lambda: (ema.average(batch_mean), ema.average(batch_var)))
-        normed = tf.nn.batch_normalization(x, mean, var, beta, gamma, 1e-3)
-    return normed
-
-
 def conv2d(x, W):
     """conv2d returns a 2d convolution layer with full stride."""
     return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')  # TODO: stride, padding
@@ -168,17 +148,15 @@ def main(_):
 
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            for i in range(epochs):
+            for i in range(1):
                 for (Xb, Yb) in next_batch(cnnData.X_train, cnnData.Y_train, batchSize):
                     train_step.run(feed_dict={x: Xb, y_: Yb, keep_prob: 0.5, mode: True})
-
                 if i % 25 == 0:  # log
                     train_accuracy = accuracy.eval(feed_dict={
                         x: cnnData.X_train, y_: cnnData.Y_train, keep_prob: 1.0, mode: False})
                     print('step %d, training accuracy %g' % (i, train_accuracy))
                     if train_accuracy == 1:
                         break
-
             print('test accuracy %g' % accuracy.eval(feed_dict={
                 x: cnnData.X_test, y_: cnnData.Y_test, keep_prob: 1.0, mode: False}))
 
