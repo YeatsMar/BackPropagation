@@ -4,6 +4,7 @@ import tempfile
 
 from classification import next_batch
 from CnnData import CnnData
+import preprocess
 
 import tensorflow as tf
 
@@ -161,10 +162,58 @@ def main(_):
                 x: cnnData.X_test, y_: cnnData.Y_test, keep_prob: 1.0, mode: False}))
 
 
+def main_withoutCV(_):
+    # Create the model
+    x = tf.placeholder(tf.float32, [None, 784])
+
+    # Define loss and optimizer
+    y_ = tf.placeholder(tf.float32, [None, 14])
+
+    # Build the graph for the deep net
+    y_conv, keep_prob, mode = deepnn(x)
+
+    with tf.name_scope('loss'):  # TODO: L2正则项
+        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=y_,
+                                                                logits=y_conv)
+    cross_entropy = tf.reduce_mean(cross_entropy)
+
+    with tf.name_scope('adam_optimizer'):  # TODO: optimizer in TF, learning rate
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+
+    with tf.name_scope('accuracy'):
+        correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
+        correct_prediction = tf.cast(correct_prediction, tf.float32)
+    accuracy = tf.reduce_mean(correct_prediction)
+
+    graph_location = tempfile.mkdtemp()  # TODO
+    print('Saving graph to: %s' % graph_location)
+    train_writer = tf.summary.FileWriter(graph_location)
+    train_writer.add_graph(tf.get_default_graph())
+
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        (X_train, Y_train) = preprocess.training_set()
+        (X_test, Y_test) = preprocess.test_set()
+        for i in range(epochs):
+            for (Xb, Yb) in next_batch(X_train, Y_train, 51):
+                train_step.run(feed_dict={x: Xb, y_: Yb, keep_prob: 0.5, mode: True})
+            if i % 25 == 0:  # log
+                train_accuracy = accuracy.eval(feed_dict={
+                    x: X_train, y_: Y_train, keep_prob: 1.0, mode: False})
+                print('step %d, training accuracy %g' % (i, train_accuracy))
+                if train_accuracy == 1:
+                    break
+        print('test accuracy %g' % accuracy.eval(feed_dict={
+            x: X_test, y_: Y_test, keep_prob: 1.0, mode: False}))
+
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str,
                         default='tmp',
                         help='Directory for storing input data')
     FLAGS, unparsed = parser.parse_known_args()
-    tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+    tf.app.run(main=main_withoutCV, argv=[sys.argv[0]] + unparsed)

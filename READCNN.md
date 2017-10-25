@@ -221,6 +221,34 @@ test accuracy 0.98324
 
 26*26 左上、左下、右上、右下
 
+~~~
+step 0, training accuracy 0.587123
+step 25, training accuracy 0.998884
+step 50, training accuracy 1
+test accuracy 0.99442
+
+step 0, training accuracy 0.591378
+step 25, training accuracy 0.998814
+step 50, training accuracy 1
+test accuracy 0.995815
+
+step 0, training accuracy 0.579171
+step 25, training accuracy 0.999093
+step 50, training accuracy 1
+test accuracy 0.99442
+
+step 0, training accuracy 0.51409
+step 25, training accuracy 0.996652
+step 50, training accuracy 1
+test accuracy 0.99721
+
+step 0, training accuracy 0.540109
+step 25, training accuracy 0.998186
+step 50, training accuracy 1
+test accuracy 0.99442
+~~~
+
+
 #### Gaussian Blur
 
 OpenCV

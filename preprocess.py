@@ -18,7 +18,7 @@ def image2array(filepath, reverse=False):
     return pixels
 
 
-def get_data(reverse=False):
+def get_data(reverse=False, extend=False):
     X = list()
     Y = list()
     for i in range(14):
@@ -30,12 +30,14 @@ def get_data(reverse=False):
             y = np.zeros(14)
             y[i] = 1
             Y.append(y)
-            if reverse:
+            if extend:
                 im = Image.open('TRAIN/%d/'%(i+1) + file)
+                # crop in all direction
                 X.append(crop_image_part(im, (0, 0, 26, 26)))
                 X.append(crop_image_part(im, (2, 0, 28, 26)))
                 X.append(crop_image_part(im, (0, 2, 26, 28)))
                 X.append(crop_image_part(im, (2, 2, 28, 28)))
+                # rotate
                 for j in range(4):
                     y = np.zeros(14)
                     y[i] = 1
@@ -56,14 +58,8 @@ def crop_image_part(im, box):
     return pixels
 
 
-def crop_image(filepath):
-    im = Image.open(filepath)
-    data = list()
-    data.append(crop_image_part(im, (0, 0, 26, 26)))
-    data.append(crop_image_part(im, (2, 0, 28, 26)))
-    data.append(crop_image_part(im, (0, 2, 26, 28)))
-    data.append(crop_image_part(im, (2, 2, 28, 28)))
-    return np.array(data)
+def rotate(im, angle):
+    im.rotate(angle).show()
 
 
 def blur_gaussian():
@@ -97,7 +93,43 @@ def gaussian_blur_opencv(filepath):
     return 1 - blur
 
 
+def training_set():
+    X = list()
+    Y = list()
+    for i in range(14):
+        for k in range(205):
+            x = image2array('TRAIN/%d/%d.bmp' % (i+1, k), reverse=True)
+            X.append(x)
+            y = np.zeros(14)
+            y[i] = 1
+            Y.append(y)
+            im = Image.open('TRAIN/%d/%d.bmp' % (i+1, k))
+            # crop in all direction
+            X.append(crop_image_part(im, (0, 0, 26, 26)))
+            X.append(crop_image_part(im, (2, 0, 28, 26)))
+            X.append(crop_image_part(im, (0, 2, 26, 28)))
+            X.append(crop_image_part(im, (2, 2, 28, 28)))
+            # rotate
+            for j in range(4):
+                y = np.zeros(14)
+                y[i] = 1
+                Y.append(y)
+    return (np.array(X), np.array(Y))
+
+def test_set():
+    X = list()
+    Y = list()
+    for i in range(14):
+        for k in range(205, 256):
+            x = image2array('TRAIN/%d/%d.bmp' % (i + 1, k), reverse=True)
+            X.append(x)
+            y = np.zeros(14)
+            y[i] = 1
+            Y.append(y)
+    return (np.array(X), np.array(Y))
+
+
 if __name__ == '__main__':
-    (X, Y) = get_data(True)
-    print(len(Y))
+    im = Image.open('TRAIN/1/0.bmp')
+    rotate(im, 10)
 
