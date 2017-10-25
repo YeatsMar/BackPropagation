@@ -1,6 +1,7 @@
 import math
 import numpy as np
 from PIL import Image
+from matplotlib import pyplot as plt
 
 
 class MyGaussianBlur():
@@ -42,8 +43,11 @@ class MyGaussianBlur():
 
 r = 1  # 模版半径，自己自由调整
 s = 2  # sigema数值，自己自由调整
-GBlur = MyGaussianBlur(radius=0)  # 声明高斯模糊类
+GBlur = MyGaussianBlur(radius=1)  # 声明高斯模糊类
 temp = GBlur.template()  # 得到滤波模版
 im = Image.open('/Users/Mar/PycharmProjects/BackPropagation/forREADME/regularization2.png')  # 打开图片
+
 image = GBlur.filter(im, temp)  # 高斯模糊滤波，得到新的图片
-image.show()  # 图片显示
+
+plt.imshow(image)
+plt.show()
