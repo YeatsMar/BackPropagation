@@ -1,6 +1,8 @@
-from PIL import Image
+from PIL import Image, ImageFilter
 import numpy as np
 import os
+import cv2
+from matplotlib import pyplot as plt
 
 def image2array(filepath, reverse=False):
     im = Image.open(filepath)
@@ -31,6 +33,42 @@ def get_data(reverse=False):
     return (np.array(X), np.array(Y))
 
 
+def crop_image(filepath, box):
+    im = Image.open(filepath)
+    im.crop(0, 0, 25, 25)
+
+
+def blur_gaussian():
+    # im = Image.open('TRAIN/1/1.bmp')
+    # pixels = np.array(im.getdata())
+    # pixels.shape = im.width * im.height
+    # print(pixels)
+    #
+    # im.show()
+    # im = im.filter(ImageFilter.SMOOTH) #
+    # pixels = np.array(im.getdata())
+    # pixels.shape = im.width * im.height
+    # print(pixels)
+    # im.show()
+
+    im = Image.open('TRAIN/1/1.bmp')
+    pixels = im.load()
+    for x in range(im.width):
+        for y in range(im.height):
+            pixels[x, y] = 0 if pixels[x, y] == 255 else 1
+    im.show()
+
+    im.filter(ImageFilter.SMOOTH)
+    im.show()
+
 if __name__ == '__main__':
-    (X, Y) = get_data(True)
-    print(X[0])
+    blur_gaussian()
+    # img = cv2.imread('TRAIN/1/0.bmp')
+    # blur = cv2.GaussianBlur(img, (3, 3), 0)
+    #
+    # plt.subplot(121), plt.imshow(img), plt.title('Original')
+    # plt.xticks([]), plt.yticks([])
+    # plt.subplot(122), plt.imshow(blur), plt.title('Blurred')
+    # plt.xticks([]), plt.yticks([])
+    # plt.show()
+

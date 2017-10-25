@@ -146,8 +146,59 @@ step 25, training accuracy 0.985356
 step 50, training accuracy 0.999651
 step 75, training accuracy 1
 test accuracy 0.960894
+
+Add a convolutional layer
+
+step 0, training accuracy 0.123823
+step 25, training accuracy 0.987443
+step 50, training accuracy 1
+test accuracy 0.934449
+Saving graph to: /tmp/tmpwx2secnv
+step 0, training accuracy 0.0927799
+step 25, training accuracy 0.980816
+step 50, training accuracy 1
+test accuracy 0.958159
+Saving graph to: /tmp/tmpjo6444w_
+step 0, training accuracy 0.103593
+step 25, training accuracy 0.986746
+step 50, training accuracy 1
+test accuracy 0.956764
+Saving graph to: /tmp/tmporzfnvj5
+step 0, training accuracy 0.168818
+step 25, training accuracy 0.986397
+step 50, training accuracy 1
+test accuracy 0.945607
+Saving graph to: /tmp/tmpii4jf9fo
+step 0, training accuracy 0.150279
+step 25, training accuracy 0.988842
+step 50, training accuracy 1
+test accuracy 0.953911
  
 ## Optimization
+
+### Data Augmentation
+
+#### Crop
+
+26*26 左上、左下、右上、右下
+
+#### Gaussian Blur
+
+### Batch Normalization
+
+input of each layer: mean, std   then input = (input-mean)/std
+already implemented in TF
+ 
+
+### Dense Prediction
+
+
+conv(3\*3, padding=1, stride=1) - BN - ReLU - Pool -> 
+conv(3\*3, padding=0, stride=2) - BN - ReLU ->
+conv(3\*3, padding=0, stride=2) - BN - ReLU (more conv???)-> avg Pool -> BP
+
+
+
 
 error on training set without mini-batch:
 step 0, training accuracy 0.0454799
