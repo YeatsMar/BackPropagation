@@ -5,15 +5,15 @@ from preprocess import get_data
 
 
 class CnnData:
-    (X, Y) = get_data(reverse=True)
-    fold = 5
     cvIndex = 0
-    sample_num = X.shape[0]
-    blockSize = round(sample_num / fold)
-    I = np.arange(sample_num)
     batchIndex = 0
 
-    def __init__(self):
+    def __init__(self, fold=5, rotate=False, crop=False):
+        self.fold = fold
+        (self.X, self.Y) = get_data(reverse=True, crop=crop, rotate_extend=rotate)
+        self.sample_num = self.X.shape[0]
+        self.blockSize = round(self.sample_num / self.fold)
+        self.I = np.arange(self.sample_num)
         for i in range(3):
             random.shuffle(self.I)
 

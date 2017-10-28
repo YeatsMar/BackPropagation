@@ -1,4 +1,3 @@
-# coding: utf-8
 import argparse
 import sys
 import tempfile
@@ -16,7 +15,7 @@ image_height = 28
 image_depth = 1
 epochs = 1000
 cv_fold = 5
-batchSize = 256
+batchSize = 32
 
 
 def deepnn(x):
@@ -38,9 +37,13 @@ def deepnn(x):
 
     # First convolutional layer - maps one grayscale image to 32 feature maps.
     with tf.name_scope('conv1'):
-        W_conv1 = weight_variable([3, 3, 1, 32])  # TODO: #filters, filter size
+        W_conv1 = weight_variable([3, 3, 1, 32])
         b_conv1 = bias_variable([32])
-        h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
+        conv1_out = conv2d(x_image, W_conv1) + b_conv1
+        # BN
+        mode = tf.placeholder(tf.bool)
+        bn1 = tf.layers.batch_normalization(conv1_out, scale=False, training=mode)
+        h_conv1 = tf.nn.relu(bn1)
 
     # Pooling layer - downsamples by 2X.
     with tf.name_scope('pool1'):
@@ -48,9 +51,12 @@ def deepnn(x):
 
     # Second convolutional layer -- maps 32 feature maps to 64.
     with tf.name_scope('conv2'):
-        W_conv2 = weight_variable([3, 3, 32, 64])  # TODO: #filters, filter size/ depth
+        W_conv2 = weight_variable([3, 3, 32, 64])
         b_conv2 = bias_variable([64])
-        h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
+        conv2_out = conv2d(h_pool1, W_conv2) + b_conv2
+        bn2 = tf.layers.batch_normalization(conv2_out, scale=False, training=mode)
+        h_conv2 = tf.nn.relu(bn2)
+
 
     # Second pooling layer.
     with tf.name_scope('pool2'):
@@ -63,7 +69,9 @@ def deepnn(x):
         b_fc1 = bias_variable([1024])
 
         h_pool2_flat = tf.reshape(h_pool2, [-1, 7 * 7 * 64])
-        h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
+        fc1_out = tf.matmul(h_pool2_flat, W_fc1) + b_fc1
+        bn3 = tf.layers.batch_normalization(fc1_out, scale=False, training=mode)
+        h_fc1 = tf.nn.relu(bn3)
 
     # Dropout - controls the complexity of the model, prevents co-adaptation of
     # features.
@@ -77,12 +85,12 @@ def deepnn(x):
         b_fc2 = bias_variable([14])
 
         y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
-    return y_conv, keep_prob
+    return y_conv, keep_prob, mode
 
 
 def conv2d(x, W):
     """conv2d returns a 2d convolution layer with full stride."""
-    return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')  # TODO: stride
+    return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
 
 
 def max_pool_2x2(x):
@@ -104,7 +112,7 @@ def bias_variable(shape):
 
 
 def main(_):
-    cnnData = CnnData(crop=True, rotate=True)  # TODO
+    cnnData = CnnData()
     for r in range(cv_fold):
         cnnData.nextCVRound()
 
@@ -115,7 +123,7 @@ def main(_):
         y_ = tf.placeholder(tf.float32, [None, 14])
 
         # Build the graph for the deep net
-        y_conv, keep_prob = deepnn(x)
+        y_conv, keep_prob, mode = deepnn(x)
 
         with tf.name_scope('loss'):
             cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=y_,
@@ -123,7 +131,9 @@ def main(_):
         cross_entropy = tf.reduce_mean(cross_entropy)
 
         with tf.name_scope('adam_optimizer'):
-            train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            with tf.control_dependencies(update_ops):
+                train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
 
         with tf.name_scope('accuracy'):
             correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
@@ -136,28 +146,18 @@ def main(_):
         train_writer.add_graph(tf.get_default_graph())
 
         with tf.Session() as sess:
-            j = 0
-            max_train_accuracy = 0
             sess.run(tf.global_variables_initializer())
-            for i in range(epochs):
+            for i in range(1):
                 for (Xb, Yb) in next_batch(cnnData.X_train, cnnData.Y_train, batchSize):
-                    train_step.run(feed_dict={x: Xb, y_: Yb, keep_prob: 0.5})
+                    train_step.run(feed_dict={x: Xb, y_: Yb, keep_prob: 0.5, mode: True})
                 if i % 25 == 0:  # log
                     train_accuracy = accuracy.eval(feed_dict={
-                        x: cnnData.X_train, y_: cnnData.Y_train, keep_prob: 1.0})
+                        x: cnnData.X_train, y_: cnnData.Y_train, keep_prob: 1.0, mode: False})
                     print('step %d, training accuracy %g' % (i, train_accuracy))
                     if train_accuracy == 1:
                         break
-                    if train_accuracy > max_train_accuracy:
-                        max_train_accuracy = train_accuracy
-                        j = 0
-                    else:
-                        j += 1
-                if j == 5:
-                    print('success')
-                    break
             print('test accuracy %g' % accuracy.eval(feed_dict={
-                x: cnnData.X_test, y_: cnnData.Y_test, keep_prob: 1.0}))
+                x: cnnData.X_test, y_: cnnData.Y_test, keep_prob: 1.0, mode: False}))
 
 
 def main_withoutCV(_):
@@ -168,7 +168,7 @@ def main_withoutCV(_):
     y_ = tf.placeholder(tf.float32, [None, 14])
 
     # Build the graph for the deep net
-    y_conv, keep_prob = deepnn(x)
+    y_conv, keep_prob, mode = deepnn(x)
 
     with tf.name_scope('loss'):
         cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=y_,
@@ -176,7 +176,9 @@ def main_withoutCV(_):
     cross_entropy = tf.reduce_mean(cross_entropy)
 
     with tf.name_scope('adam_optimizer'):
-        train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
 
     with tf.name_scope('accuracy'):
         correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
@@ -189,29 +191,21 @@ def main_withoutCV(_):
     train_writer.add_graph(tf.get_default_graph())
 
     with tf.Session() as sess:
-        j = 0
-        max_train_accuracy = 0
         sess.run(tf.global_variables_initializer())
-        (X_train, Y_train) = preprocess.training_set(crop=True, rotate_e=True)  # TODO
+        (X_train, Y_train) = preprocess.training_set()
         (X_test, Y_test) = preprocess.test_set()
         for i in range(epochs):
-            for (Xb, Yb) in next_batch(X_train, Y_train, 41):
-                train_step.run(feed_dict={x: Xb, y_: Yb, keep_prob: 0.5})
+            for (Xb, Yb) in next_batch(X_train, Y_train, 51):
+                train_step.run(feed_dict={x: Xb, y_: Yb, keep_prob: 0.5, mode: True})
             if i % 25 == 0:  # log
                 train_accuracy = accuracy.eval(feed_dict={
-                    x: X_train, y_: Y_train, keep_prob: 1.0})
+                    x: X_train, y_: Y_train, keep_prob: 1.0, mode: False})
                 print('step %d, training accuracy %g' % (i, train_accuracy))
                 if train_accuracy == 1:
                     break
-                if train_accuracy > max_train_accuracy:
-                    max_train_accuracy = train_accuracy
-                    j = 0
-                else:
-                    j += 1
-            if j == 5:
-                break
         print('test accuracy %g' % accuracy.eval(feed_dict={
-            x: X_test, y_: Y_test, keep_prob: 1.0}))
+            x: X_test, y_: Y_test, keep_prob: 1.0, mode: False}))
+
 
 
 if __name__ == '__main__':

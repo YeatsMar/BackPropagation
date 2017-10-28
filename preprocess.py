@@ -18,7 +18,7 @@ def image2array(filepath, reverse=False):
     return pixels
 
 
-def get_data(reverse=False, extend=False):
+def get_data(reverse=False, crop=False, rotate_extend=False):
     X = list()
     Y = list()
     for i in range(14):
@@ -30,15 +30,21 @@ def get_data(reverse=False, extend=False):
             y = np.zeros(14)
             y[i] = 1
             Y.append(y)
-            if extend:
-                im = Image.open('TRAIN/%d/'%(i+1) + file)
+            im = Image.open('TRAIN/%d/' % (i + 1) + file)
+            if crop:
                 # crop in all direction
                 X.append(crop_image_part(im, (0, 0, 26, 26)))
                 X.append(crop_image_part(im, (2, 0, 28, 26)))
                 X.append(crop_image_part(im, (0, 2, 26, 28)))
                 X.append(crop_image_part(im, (2, 2, 28, 28)))
-                # rotate
                 for j in range(4):
+                    y = np.zeros(14)
+                    y[i] = 1
+                    Y.append(y)
+            if rotate_extend:
+                X.append(rotate(im, 10))
+                X.append(rotate(im, -10))
+                for j in range(2):
                     y = np.zeros(14)
                     y[i] = 1
                     Y.append(y)
@@ -59,7 +65,14 @@ def crop_image_part(im, box):
 
 
 def rotate(im, angle):
-    im.rotate(angle).show()
+    pixels = im.load()
+    for x in range(im.width):
+        for y in range(im.height):
+            pixels[x, y] = 0 if pixels[x, y] == 255 else 1
+    im.rotate(angle)
+    pixels = np.array(im.getdata())
+    pixels.shape = im.width * im.height
+    return pixels
 
 
 def blur_gaussian():
@@ -93,7 +106,7 @@ def gaussian_blur_opencv(filepath):
     return 1 - blur
 
 
-def training_set():
+def training_set(crop=True, rotate_e=False):
     X = list()
     Y = list()
     for i in range(14):
@@ -104,16 +117,23 @@ def training_set():
             y[i] = 1
             Y.append(y)
             im = Image.open('TRAIN/%d/%d.bmp' % (i+1, k))
-            # crop in all direction
-            X.append(crop_image_part(im, (0, 0, 26, 26)))
-            X.append(crop_image_part(im, (2, 0, 28, 26)))
-            X.append(crop_image_part(im, (0, 2, 26, 28)))
-            X.append(crop_image_part(im, (2, 2, 28, 28)))
-            # rotate
-            for j in range(4):
-                y = np.zeros(14)
-                y[i] = 1
-                Y.append(y)
+            if crop:
+                # crop in all direction
+                X.append(crop_image_part(im, (0, 0, 26, 26)))
+                X.append(crop_image_part(im, (2, 0, 28, 26)))
+                X.append(crop_image_part(im, (0, 2, 26, 28)))
+                X.append(crop_image_part(im, (2, 2, 28, 28)))
+                for j in range(4):
+                    y = np.zeros(14)
+                    y[i] = 1
+                    Y.append(y)
+            if rotate_e:
+                X.append(rotate(im, 10))
+                X.append(rotate(im, -10))
+                for j in range(2):
+                    y = np.zeros(14)
+                    y[i] = 1
+                    Y.append(y)
     return (np.array(X), np.array(Y))
 
 def test_set():
