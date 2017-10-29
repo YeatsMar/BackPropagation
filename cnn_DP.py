@@ -123,7 +123,7 @@ def bias_variable(shape):
 
 
 def main(_):
-    cnnData = CnnData(crop=False, rotate=False)
+    cnnData = CnnData(crop=False, rotate=True)
     for r in range(cv_fold):
         cnnData.nextCVRound()
 

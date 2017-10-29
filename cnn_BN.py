@@ -192,7 +192,7 @@ def main_withoutCV(_):
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        (X_train, Y_train) = preprocess.training_set()
+        (X_train, Y_train) = preprocess.training_set(crop=False, rotate_e=False)  #TODO
         (X_test, Y_test) = preprocess.test_set()
         for i in range(epochs):
             for (Xb, Yb) in next_batch(X_train, Y_train, 51):

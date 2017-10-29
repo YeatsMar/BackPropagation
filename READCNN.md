@@ -118,7 +118,7 @@ N^th fold  | Accuracy of Training set | Accuracy of Test set
 5  | 1 | 0.960894
 
 
-
+~~~
 step 0, training accuracy 0.161144
 step 25, training accuracy 0.983955
 step 50, training accuracy 0.999651
@@ -146,37 +146,23 @@ step 25, training accuracy 0.985356
 step 50, training accuracy 0.999651
 step 75, training accuracy 1
 test accuracy 0.960894
-
-$\color{red}{增加第三层卷积层}$
-
-~~~
-step 0, training accuracy 0.123823
-step 25, training accuracy 0.987443
-step 50, training accuracy 1
-test accuracy 0.934449
-
-step 0, training accuracy 0.0927799
-step 25, training accuracy 0.980816
-step 50, training accuracy 1
-test accuracy 0.958159
-
-step 0, training accuracy 0.103593
-step 25, training accuracy 0.986746
-step 50, training accuracy 1
-test accuracy 0.956764
-
-step 0, training accuracy 0.168818
-step 25, training accuracy 0.986397
-step 50, training accuracy 1
-test accuracy 0.945607
-
-step 0, training accuracy 0.150279
-step 25, training accuracy 0.988842
-step 50, training accuracy 1
-test accuracy 0.953911
 ~~~
 
-$\color{red}{卷积核从5*5改为3*3}$
+
+## Optimization
+
+### Filter 
+
+Nowadays, it is common to use 3\*3 filter for small images and 7\*7 for the large. Thus I tried to change the filter from 5\*5 to 3\*3. And the accuracy was improved to **0.9810274** on average based on 5-fold cross validation. And since it is an obvious and stable improvement, it was used along all other optimization methods.
+
+N^th fold  | Accuracy of Training set | Accuracy of Test set
+------------- | ------------- | -------------
+1  | 1 | 0.97629
+2  | 1 | 0.990237
+3  | 1 | 0.967922
+4  | 1 | 0.987448
+5  | 1 | 0.98324
+
 
 ~~~
 step 0, training accuracy 0.122776
@@ -212,14 +198,79 @@ step 75, training accuracy 1
 test accuracy 0.98324
 ~~~
 
+### Network architecture
 
-## Optimization
+Without any experience in optimizing *CNN*, I simply tried to add one more convolutional layer to see whether it would work. However, adding one more convolutional layer to the classical LeNet5 did not bring any good. The accuracy decreased to **0.949778** on average of 5-fold cross validation. Therefore, I had to go deeper into the design principles instead of simply doing experiments of changing number of layers.
+
+N^th fold  | Accuracy of Training set | Accuracy of Test set
+------------- | ------------- | -------------
+1  | 1 | 0.934449
+2  | 1 | 0.958159
+3  | 1 | 0.956764
+4  | 1 | 0.945607
+5  | 1 | 0.953911
+
+~~~
+step 0, training accuracy 0.123823
+step 25, training accuracy 0.987443
+step 50, training accuracy 1
+test accuracy 0.934449
+
+step 0, training accuracy 0.0927799
+step 25, training accuracy 0.980816
+step 50, training accuracy 1
+test accuracy 0.958159
+
+step 0, training accuracy 0.103593
+step 25, training accuracy 0.986746
+step 50, training accuracy 1
+test accuracy 0.956764
+
+step 0, training accuracy 0.168818
+step 25, training accuracy 0.986397
+step 50, training accuracy 1
+test accuracy 0.945607
+
+step 0, training accuracy 0.150279
+step 25, training accuracy 0.988842
+step 50, training accuracy 1
+test accuracy 0.953911
+~~~
+
 
 ### Data Augmentation
 
+It is universally acknowledged that large dataset can solve the issue of overfit and low accuracy with appropriate features in most cases. In our case, there are only 256 samples under each category. And the Chinese characters are relatively complex to digital numbers. Therefore, data augmentation is quite necessary. Different from the identification of animals in images, Chinese characters are of fixed structure, thus cannot be transformed. And since our samples are black and white, there is no point in changing color. Crop, slight rotate are preferred. 
+
 #### Crop
 
-26*26 左上、左下、右上、右下
+The images are cropped into 26\*26 size from four directons and enlarged to original 28\*28 size. In this way, the information will not be missed and different samples are created. We can see it from our naked eyes. This method improved accuracy to **0.995257** on average of 5-fold cross validation.
+
+![original](forREADME/original.png) ![original](forREADME/left-up.png) ![original](forREADME/right-up.png) ![original](forREADME/left-down.png) ![original](forREADME/right-down.png)
+
+~~~python
+def crop_image_part(im, box):
+    partial = im.crop(box)
+    partial = partial.resize((28, 28), Image.ANTIALIAS)
+    pixels = partial.load()
+    for x in range(partial.width):
+        for y in range(partial.height):
+            pixels[x, y] = 0 if pixels[x, y] == 255 else 1
+    # partial.show()
+    pixels = np.array(partial.getdata())
+    pixels.shape = partial.width * partial.height
+    return pixels
+~~~ 
+
+
+N^th fold  | Accuracy of Training set | Accuracy of Test set
+------------- | ------------- | -------------
+1  | 1 | 0.99442
+2  | 1 | 0.995815
+3  | 1 | 0.99442
+4  | 1 | 0.99721
+5  | 1 | 0.99442
+
 
 ~~~
 step 0, training accuracy 0.587123
@@ -248,7 +299,7 @@ step 50, training accuracy 1
 test accuracy 0.99442
 ~~~
 
-The above is CV result, in case of overfitting and dependency of similarity, extract 20% as test set and test set had no data augmentation.
+In case of overfit and dependency of similarity, I extracted 20% original dataset as test set and test set had no data augmentation. The accuracy is still as high as **0.985994**.
 
 ~~~
 step 0, training accuracy 0.0725436
@@ -259,9 +310,22 @@ test accuracy 0.985994
 
 #### Rotate
 
-10 and -10 degree
+Slightly rotate original image by 10 and -10 degree, the accuracy is also improved to **0.995536** on average of cross validation and **0.977591** on 20% test set.
+
+![](forREADME/original.png) ![](forREADME/10.png) ![](forREADME/-10.png) 
+
+
+N^th fold  | Accuracy of Training set | Accuracy of Test set
+------------- | ------------- | -------------
+1  | 1 | 0.99721
+2  | 1 | 0.99721
+3  | 1 | 0.99442
+4  | 1 | 0.992746
+5  | 1 | 0.996094
+
 
 ~~~
+???
 step 0, training accuracy 0.582938
 step 25, training accuracy 0.998047
 step 50, training accuracy 1
@@ -288,23 +352,111 @@ step 50, training accuracy 1
 test accuracy 0.996094
 ~~~
 
-#### Gaussian Blur
 
-OpenCV
+~~~
+???4832
+step 0, training accuracy 0.0723577
+step 25, training accuracy 0.588269
+step 50, training accuracy 0.690244
+step 75, training accuracy 0.674448
+step 100, training accuracy 0.690476
+step 125, training accuracy 0.690476
+step 150, training accuracy 0.68885
+step 175, training accuracy 0.686992
+step 200, training accuracy 0.690476
+step 225, training accuracy 0.690476
+test accuracy 0.977591
+~~~
 
 
 ### Batch Normalization
 
-input of each layer: mean, std   then input = (input-mean)/std
-already implemented in TF
+Referencing the ground-breaking research *Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift* in year 2015, I tried Batch Normalization in my dataset.
+
+> Training Deep Neural Networks is complicated by the fact that the distribution of each layer’s inputs changes during training, as the parameters of the previous layers change. This slows down the training by requiring lower learning rates and careful parameter initialization, and makes it notoriously hard to train models with saturating nonlinearities. We refer to this phenomenon as internal covariate shift, and address the problem by normalizing layer inputs. Our method draws its strength from making normalization a part of the model architecture and performing the normalization for each training mini-batch. Batch Normalization allows us to use much higher learning rates and be less careful about initialization. It also acts as a regularizer, in some cases eliminating the need for Dropout. Applied to a state-of-the-art image classification model, Batch Normalization achieves the same accuracy with 14 times fewer training steps, and beats the original model by a significant margin.
+
+
+That is to say, the input of each layer will be normalized as follows:
+
+![](forREADME/BN.png)
+![](forREADME/BN_formular.png)
+![](forREADME/BN1.png)
+
+Among the formulas, $\gamma$ and $\beta$ are parameters to be learnt. The last step is necessary because normalization changes the original distribution of previou output and thus may cause information loss. When $\gamma = \sqrt{Var[x]}$, $\beta = E[x]$, the original data can be restored.
+
+
+
+Luckily, there are implenmented interface in *TensorFlow*.
+
+~~~python
+batchSize = 256
+...
+bn1 = tf.layers.batch_normalization(conv1_out, scale=False, training=mode)
+~~~
+
+Whether it is training or testing matters a lot. Since in training process, $\mu$ and $\sigma$ value is re-calculated and changed, while on test set, they are fixed.
+$$
+E[x] = E[\mu]$$
+$$
+Var[x] = \frac{m}{m-1}E[\sigma^2]
+$$
+
+However, the accuracy is not so good.
+
+~~~
+step 0, training accuracy 0.0874564
+step 25, training accuracy 0.625087
+step 50, training accuracy 0.762369
+step 75, training accuracy 0.828223
+step 100, training accuracy 0.858885
+step 125, training accuracy 0.897213
+step 150, training accuracy 0.896167
+step 175, training accuracy 0.891638
+step 200, training accuracy 0.937282
+step 225, training accuracy 0.916725
+step 250, training accuracy 0.931707
+step 275, training accuracy 0.946341
+step 300, training accuracy 0.950871
+step 325, training accuracy 0.958537
+step 350, training accuracy 0.946341
+step 375, training accuracy 0.967596
+step 400, training accuracy 0.974913
+step 425, training accuracy 0.974564
+step 450, training accuracy 0.956794
+step 475, training accuracy 0.960627
+step 500, training accuracy 0.966551
+step 525, training accuracy 0.973171
+step 550, training accuracy 0.973519
+step 575, training accuracy 0.973519
+step 600, training accuracy 0.975261
+step 625, training accuracy 0.977352
+step 650, training accuracy 0.958537
+step 675, training accuracy 0.990592
+step 700, training accuracy 0.966551
+step 725, training accuracy 0.9777
+step 750, training accuracy 0.9777
+step 775, training accuracy 0.978397
+step 800, training accuracy 0.976655
+step 825, training accuracy 0.974564
+step 850, training accuracy 0.983972
+step 875, training accuracy 0.988153
+step 900, training accuracy 0.981533
+step 925, training accuracy 0.990941
+step 950, training accuracy 0.990592
+step 975, training accuracy 0.985017
+test accuracy 0.578431
+~~~
  
 
 ### Dense Prediction
+Referenced paper *Fully Convolutional Networks for Semantic Segmentation*, I removed the second 2\*2 max\_pooling layer which need to be reshaped. Instead, I changed the stride of the filters and add a third convolutional layer and an average pooling. 
+
+Firstly, by changing the stride of filters on the second convolutional layer from 1 to 2, the size of images are cut into half, which is similar to the funcion of 2\*2 max pooling layer but with less information loss. Secondly, another convolutional layer aims to extract more complex and detailed patterns. The last average pooling layer is of the same size of its input, making the outputs 1*1 size which does not need reshape for connection with fully connected layers.
 
 
-conv(3\*3, padding=1, stride=1) - BN - ReLU - Pool -> 
-conv(3\*3, padding=0, stride=2) - BN - ReLU ->
-conv(3\*3, padding=1, stride=1) - BN - ReLU -> avg Pool -> BP
+conv(3\*3, padding=1, stride=1) - ReLU - Pool ->   
+conv(3\*3, padding=0, stride=2) - ReLU ->  
+conv(3\*3, padding=1, stride=1) - ReLU -> avg Pool -> fc
 
 ~~~
 ========== conv1 ==========
@@ -318,6 +470,18 @@ conv(3\*3, padding=1, stride=1) - BN - ReLU -> avg Pool -> BP
 ========== pool2 ==========
  (?, 1, 1, 128)
 ~~~
+
+The accuracy is improved to **0.9877218** on average of 5-fold cross validation. 
+
+
+N^th fold  | Accuracy of Training set | Accuracy of Test set
+------------- | ------------- | -------------
+1  | 1 | 0.991632
+2  | 1 | 0.988842
+3  | 1 | 0.986053
+4  | 1 | 0.988842
+5  | 1 | 0.98324
+
 
 ~~~
 step 0, training accuracy 0.0812696
@@ -532,20 +696,144 @@ test accuracy 0.98324
 
 ### More combo
 
+#### Batch Normalization + Crop
+
+Incredibly low accuracy of **0.159664** on 20% test set.
+
+~~~
+step 0, training accuracy 0.0919164
+step 25, training accuracy 0.369477
+step 50, training accuracy 0.470453
+step 75, training accuracy 0.518955
+step 100, training accuracy 0.552056
+step 125, training accuracy 0.628571
+step 150, training accuracy 0.696516
+step 175, training accuracy 0.740767
+step 200, training accuracy 0.789199
+step 225, training accuracy 0.812125
+step 250, training accuracy 0.810871
+step 275, training accuracy 0.821603
+step 300, training accuracy 0.827944
+step 325, training accuracy 0.857631
+step 350, training accuracy 0.874286
+step 375, training accuracy 0.869965
+step 400, training accuracy 0.889408
+step 425, training accuracy 0.9023
+step 450, training accuracy 0.874843
+step 475, training accuracy 0.895192
+step 500, training accuracy 0.879861
+step 525, training accuracy 0.901324
+step 550, training accuracy 0.884808
+step 575, training accuracy 0.882648
+step 600, training accuracy 0.872822
+step 625, training accuracy 0.909826
+step 650, training accuracy 0.907178
+step 675, training accuracy 0.900418
+step 700, training accuracy 0.886202
+step 725, training accuracy 0.881185
+step 750, training accuracy 0.898118
+step 775, training accuracy 0.897631
+step 800, training accuracy 0.88676
+step 825, training accuracy 0.893589
+step 850, training accuracy 0.874355
+step 875, training accuracy 0.879721
+step 900, training accuracy 0.887596
+step 925, training accuracy 0.871289
+step 950, training accuracy 0.880697
+step 975, training accuracy 0.890453
+test accuracy 0.159664
+~~~
+
 #### Rotate + Crop
+
+avg: 0.865419
+
+
+N^th fold  | Accuracy of Training set | Accuracy of Test set
+------------- | ------------- | -------------
+1  | 0.868959 | 0.860702
+2  | 0.868161 | 0.863491
+3  | 0.866168 | 0.872061
+4  | 0.868959 | 0.874723
+5  | 0.869905 | 0.856118
+
+
+~~~
+step 0, training accuracy 0.547334
+step 25, training accuracy 0.868411
+step 50, training accuracy 0.868261
+step 100, training accuracy 0.868959
+step 125, training accuracy 0.868959
+step 150, training accuracy 0.869008
+step 175, training accuracy 0.869008
+...
+step 1975, training accuracy 0.868959
+test accuracy 0.860702
+
+step 0, training accuracy 0.555107
+step 25, training accuracy 0.86582
+step 50, training accuracy 0.867613
+step 75, training accuracy 0.867962
+step 100, training accuracy 0.868161
+step 125, training accuracy 0.868161
+...
+step 1975, training accuracy 0.868161
+test accuracy 0.863491
+
+step 0, training accuracy 0.589586
+step 25, training accuracy 0.864474
+step 50, training accuracy 0.866168
+step 75, training accuracy 0.86567
+step 100, training accuracy 0.866168
+step 125, training accuracy 0.866168
+...
+step 1975, training accuracy 0.866168
+test accuracy 0.872061
+
+step 0, training accuracy 0.573792
+step 25, training accuracy 0.868161
+step 50, training accuracy 0.86871
+step 75, training accuracy 0.868809
+step 100, training accuracy 0.868959
+step 125, training accuracy 0.86861
+step 150, training accuracy 0.868959
+...                                            
+step 1975, training accuracy 0.868959
+
+step 0, training accuracy 0.574639
+step 25, training accuracy 0.869258
+step 50, training accuracy 0.870055
+step 75, training accuracy 0.870055
+step 100, training accuracy 0.869905
+step 125, training accuracy 0.869905
+step 150, training accuracy 0.870055
+step 175, training accuracy 0.869905
+success
+test accuracy 0.856118
+~~~
+
 
 20% test set (test set has no data augmentation)
 
 ~~~
-step 0, training accuracy 0.0843206
-step 25, training accuracy 0.984321
-step 50, training accuracy 1
-test accuracy 0.973389
+
 ~~~
 
 
 
 #### Dense Prediction + Crop
+
+avg: 0.9970426
+
+
+N^th fold  | Accuracy of Training set | Accuracy of Test set
+------------- | ------------- | -------------
+1  | 1 | 0.996931
+2  | 1 | 0.997768
+3  | 1 | 0.996931
+4  | 1 | 0.999163
+5  | 1 | 0.99442
+
 
 ~~~
 step 0, training accuracy 0.115653
@@ -712,194 +1000,157 @@ test accuracy 0.999163
 ~~~
 
 ~~~
-Delete
-step 0, training accuracy 0.0707975
-step 25, training accuracy 0.402581
-step 50, training accuracy 0.504883
-step 75, training accuracy 0.560451
-step 100, training accuracy 0.601372
-step 125, training accuracy 0.631597
-step 150, training accuracy 0.650895
-step 175, training accuracy 0.664729
-step 200, training accuracy 0.671937
-step 225, training accuracy 0.678331
-step 250, training accuracy 0.682516
-step 275, training accuracy 0.684376
-step 300, training accuracy 0.686933
-step 325, training accuracy 0.688445
-step 350, training accuracy 0.689607
+step 0, training accuracy 0.0791676
+step 25, training accuracy 0.423739
+step 50, training accuracy 0.538363
+step 75, training accuracy 0.587189
+step 100, training accuracy 0.621716
+step 125, training accuracy 0.641827
+step 150, training accuracy 0.658451
+step 175, training accuracy 0.66903
+step 200, training accuracy 0.676471
+step 225, training accuracy 0.680074
+step 250, training accuracy 0.683329
+step 275, training accuracy 0.686585
+step 300, training accuracy 0.687863
+step 325, training accuracy 0.688561
+step 350, training accuracy 0.68891
 step 375, training accuracy 0.689607
-step 400, training accuracy 0.690653
-step 425, training accuracy 0.690653
-step 450, training accuracy 0.690653
-step 475, training accuracy 0.690653
-step 500, training accuracy 0.690653
-step 525, training accuracy 0.690421
-test accuracy 0.684186
-
-step 0, training accuracy 0.0854452
-step 25, training accuracy 0.452337
-step 50, training accuracy 0.543827
-step 75, training accuracy 0.595792
-step 100, training accuracy 0.632527
-step 125, training accuracy 0.655545
-step 150, training accuracy 0.666473
-step 175, training accuracy 0.677168
-step 200, training accuracy 0.680656
-step 225, training accuracy 0.685422
-step 250, training accuracy 0.686933
-step 275, training accuracy 0.688328
-step 300, training accuracy 0.689491
-step 325, training accuracy 0.689026
-step 350, training accuracy 0.691002
-step 375, training accuracy 0.691583
-step 400, training accuracy 0.691932
-step 425, training accuracy 0.690305
-step 450, training accuracy 0.692513
-step 475, training accuracy 0.69077
-step 500, training accuracy 0.691583
-step 525, training accuracy 0.692397
-step 550, training accuracy 0.692513
-step 575, training accuracy 0.69263
-step 600, training accuracy 0.692165
-step 625, training accuracy 0.692746
-step 650, training accuracy 0.692746
-step 675, training accuracy 0.692746
-step 700, training accuracy 0.692746
-step 725, training accuracy 0.692746
-step 750, training accuracy 0.692746
-test accuracy 0.679535
-
-step 0, training accuracy 0.0953267
-step 25, training accuracy 0.437108
-step 50, training accuracy 0.536387
-step 75, training accuracy 0.587654
-step 100, training accuracy 0.623111
-step 125, training accuracy 0.639967
-step 150, training accuracy 0.653569
-step 175, training accuracy 0.662404
-step 200, training accuracy 0.671588
-step 225, training accuracy 0.677749
-step 250, training accuracy 0.680539
-step 275, training accuracy 0.685073
-step 300, training accuracy 0.686933
-step 325, training accuracy 0.688677
-step 350, training accuracy 0.689142
-step 375, training accuracy 0.68984
-step 400, training accuracy 0.690537
-step 425, training accuracy 0.690537
-step 450, training accuracy 0.690421
-step 475, training accuracy 0.69077
-step 500, training accuracy 0.691002
-step 525, training accuracy 0.691118
-step 550, training accuracy 0.690886
-step 575, training accuracy 0.690886
+step 400, training accuracy 0.689607
+step 425, training accuracy 0.689956
+step 450, training accuracy 0.689142
+step 475, training accuracy 0.690886
+step 500, training accuracy 0.69077
+step 525, training accuracy 0.690886
+step 550, training accuracy 0.69077
+step 575, training accuracy 0.69077
 step 600, training accuracy 0.691118
-step 625, training accuracy 0.690886
-step 650, training accuracy 0.691351
+step 625, training accuracy 0.689956
+step 650, training accuracy 0.69077
 step 675, training accuracy 0.691118
 step 700, training accuracy 0.691118
 step 725, training accuracy 0.691118
-step 750, training accuracy 0.691118
-step 775, training accuracy 0.691118
 test accuracy 0.686047
 
-step 0, training accuracy 0.0877703
-step 25, training accuracy 0.435131
-step 50, training accuracy 0.5608
-step 75, training accuracy 0.601372
-step 100, training accuracy 0.631481
-step 125, training accuracy 0.651128
-step 150, training accuracy 0.666589
-step 175, training accuracy 0.671821
-step 200, training accuracy 0.678912
-step 225, training accuracy 0.684259
-step 250, training accuracy 0.686933
-step 275, training accuracy 0.691118
-step 300, training accuracy 0.693792
-step 325, training accuracy 0.692978
-step 350, training accuracy 0.694257
-step 375, training accuracy 0.694955
-step 400, training accuracy 0.695303
-step 425, training accuracy 0.695303
-step 450, training accuracy 0.695303
-step 475, training accuracy 0.69542
-step 500, training accuracy 0.69542
-step 525, training accuracy 0.69542
-step 550, training accuracy 0.69542
-step 575, training accuracy 0.69542
-step 600, training accuracy 0.694141
-test accuracy 0.666512
+step 0, training accuracy 0.0764938
+step 25, training accuracy 0.440479
+step 50, training accuracy 0.534527
+step 75, training accuracy 0.594745
+step 100, training accuracy 0.626017
+step 125, training accuracy 0.650198
+step 150, training accuracy 0.661242
+step 175, training accuracy 0.670658
+step 200, training accuracy 0.674611
+step 225, training accuracy 0.681237
+step 250, training accuracy 0.684027
+step 275, training accuracy 0.684957
+step 300, training accuracy 0.687631
+step 325, training accuracy 0.689142
+step 350, training accuracy 0.688445
+step 375, training accuracy 0.689723
+step 400, training accuracy 0.690537
+step 425, training accuracy 0.690305
+step 450, training accuracy 0.691351
+step 475, training accuracy 0.691583
+step 500, training accuracy 0.691932
+step 525, training accuracy 0.692397
+step 550, training accuracy 0.692397
+step 575, training accuracy 0.692513
+step 600, training accuracy 0.68984
+step 625, training accuracy 0.692513
+step 650, training accuracy 0.692513
+step 675, training accuracy 0.692513
+step 700, training accuracy 0.692513
+test accuracy 0.682326
 
-step 0, training accuracy 0.0782376
-step 25, training accuracy 0.442688
-step 50, training accuracy 0.550802
-step 75, training accuracy 0.601488
-step 100, training accuracy 0.636596
-step 125, training accuracy 0.652174
-step 150, training accuracy 0.662637
-step 175, training accuracy 0.66903
-step 200, training accuracy 0.674146
-step 225, training accuracy 0.677982
-step 250, training accuracy 0.682283
-step 275, training accuracy 0.682864
-step 300, training accuracy 0.685538
-step 325, training accuracy 0.686236
-step 350, training accuracy 0.686817
-step 375, training accuracy 0.686003
-step 400, training accuracy 0.687398
-step 425, training accuracy 0.687515
-step 450, training accuracy 0.687631
-step 475, training accuracy 0.686933
-step 500, training accuracy 0.687747
-step 525, training accuracy 0.687747
-step 550, training accuracy 0.687747
-step 575, training accuracy 0.687747
-step 600, training accuracy 0.687747
-step 625, training accuracy 0.687747
-test accuracy 0.701395
+step 0, training accuracy 0.0744013
+step 25, training accuracy 0.410602
+step 50, training accuracy 0.545571
+step 75, training accuracy 0.604976
+step 100, training accuracy 0.632527
+step 125, training accuracy 0.654034
+step 150, training accuracy 0.664264
+step 175, training accuracy 0.675076
+step 200, training accuracy 0.680539
+step 225, training accuracy 0.685538
+step 250, training accuracy 0.687863
+step 275, training accuracy 0.69077
+step 300, training accuracy 0.690421
+step 325, training accuracy 0.6917
+step 350, training accuracy 0.692281
+step 375, training accuracy 0.690537
+step 400, training accuracy 0.692513
+step 425, training accuracy 0.691351
+step 450, training accuracy 0.69263
+step 475, training accuracy 0.692746
+step 500, training accuracy 0.693327
+step 525, training accuracy 0.693327
+step 550, training accuracy 0.693327
+step 575, training accuracy 0.693327
+step 600, training accuracy 0.691002
+step 625, training accuracy 0.693095
+test accuracy 0.677209
+
+step 0, training accuracy 0.083934
+step 25, training accuracy 0.438386
+step 50, training accuracy 0.553243
+step 75, training accuracy 0.605092
+step 100, training accuracy 0.641246
+step 125, training accuracy 0.656708
+step 150, training accuracy 0.666473
+step 175, training accuracy 0.673681
+step 200, training accuracy 0.675889
+step 225, training accuracy 0.680772
+step 250, training accuracy 0.683446
+step 275, training accuracy 0.684841
+step 300, training accuracy 0.686817
+step 325, training accuracy 0.687631
+step 350, training accuracy 0.688212
+step 375, training accuracy 0.68891
+step 400, training accuracy 0.688793
+step 425, training accuracy 0.68891
+step 450, training accuracy 0.689375
+step 475, training accuracy 0.689258
+step 500, training accuracy 0.689491
+step 525, training accuracy 0.689375
+step 550, training accuracy 0.689491
+step 575, training accuracy 0.689491
+step 600, training accuracy 0.689491
+step 625, training accuracy 0.689491
+test accuracy 0.692558
+
+step 0, training accuracy 0.0800977
+step 25, training accuracy 0.45594
+step 50, training accuracy 0.550453
+step 75, training accuracy 0.596722
+step 100, training accuracy 0.628458
+step 125, training accuracy 0.65043
+step 150, training accuracy 0.663567
+step 175, training accuracy 0.669495
+step 200, training accuracy 0.674611
+step 225, training accuracy 0.678563
+step 250, training accuracy 0.682399
+step 275, training accuracy 0.685771
+step 300, training accuracy 0.688096
+step 325, training accuracy 0.689491
+step 350, training accuracy 0.690653
+step 375, training accuracy 0.691235
+step 400, training accuracy 0.691235
+step 425, training accuracy 0.691351
+step 450, training accuracy 0.691467
+step 475, training accuracy 0.691583
+step 500, training accuracy 0.692048
+step 525, training accuracy 0.692165
+step 550, training accuracy 0.692165
+step 575, training accuracy 0.692397
+step 600, training accuracy 0.692397
+step 625, training accuracy 0.692397
+step 650, training accuracy 0.692281
+step 675, training accuracy 0.692281
+step 700, training accuracy 0.692281
+test accuracy 0.681395
 ~~~
 
-
-
-
-
-
-
-~~~
-error on training set without mini-batch:
-step 0, training accuracy 0.0454799
-step 100, training accuracy 0.933873
-step 200, training accuracy 0.992467
-step 300, training accuracy 0.999442
-step 400, training accuracy 1
-
-mini-batch: 256
-step 0, training accuracy 0.046875
-step 0, training accuracy 0.078125
-step 0, training accuracy 0.0664062
-step 0, training accuracy 0.113281
-step 0, training accuracy 0.0742188
-step 0, training accuracy 0.0585938
-step 0, training accuracy 0.078125
-step 0, training accuracy 0.0976562
-step 0, training accuracy 0.113281
-step 0, training accuracy 0.144531
-step 0, training accuracy 0.136719
-step 0, training accuracy 0.0980392
-step 25, training accuracy 0.988281
-step 25, training accuracy 0.984375
-step 25, training accuracy 0.980469
-step 25, training accuracy 0.980469
-step 25, training accuracy 0.992188
-step 25, training accuracy 0.96875
-step 25, training accuracy 0.976562
-step 25, training accuracy 0.984375
-step 25, training accuracy 0.96875
-step 25, training accuracy 0.984375
-step 25, training accuracy 0.988281
-step 25, training accuracy 1
-~~~
 
 
 ## Conclusion

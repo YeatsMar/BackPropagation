@@ -58,7 +58,6 @@ def crop_image_part(im, box):
     for x in range(partial.width):
         for y in range(partial.height):
             pixels[x, y] = 0 if pixels[x, y] == 255 else 1
-    # partial.show()
     pixels = np.array(partial.getdata())
     pixels.shape = partial.width * partial.height
     return pixels
@@ -69,9 +68,9 @@ def rotate(im, angle):
     for x in range(im.width):
         for y in range(im.height):
             pixels[x, y] = 0 if pixels[x, y] == 255 else 1
-    im.rotate(angle)
-    pixels = np.array(im.getdata())
-    pixels.shape = im.width * im.height
+    changed = im.rotate(angle)
+    pixels = np.array(changed.getdata())
+    pixels.shape = changed.width * changed.height
     return pixels
 
 
@@ -151,5 +150,4 @@ def test_set():
 
 if __name__ == '__main__':
     im = Image.open('TRAIN/1/0.bmp')
-    rotate(im, 10)
-
+    rotate(im, 0)
